@@ -1,0 +1,17 @@
+<resources>
+    <!-- App theme -->
+    <style name="OneUI" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/purple_500</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="backgroundColor">@color/background_dark</item>
+        <item name="colorSurface">@color/oneui_card_bg</item>
+        <item name="android:textColorPrimary">@color/oneui_text_primary</item>
+        <item name="android:textColorSecondary">@color/oneui_text_secondary</item>
+    </style>
+
+    <!-- Existing text style -->
+    <style name="OneUI.TitleLarge">
+        <item name="android:textSize">24sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+</resources>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Door outline -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M3,3h11c1.1,0 2,0.9 2,2v3h-2V5H5v14h9v-3h2v3c0,1.1 -0.9,2 -2,2H3c-1.1,0 -2,-0.9 -2,-2V5c0,-1.1 0.9,-2 2,-2z" />
+
+    <!-- Arrow -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M21,12l-4,-4v3h-7v2h7v3z" />
+</vector>

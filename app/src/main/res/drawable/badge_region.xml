@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <!-- Background color (you can override from adapter) -->
+    <solid android:color="@color/md_theme_primary" />
+
+    <!-- Rounded corners but NOT oversized -->
+    <corners android:radius="8dp" />
+
+</shape>
