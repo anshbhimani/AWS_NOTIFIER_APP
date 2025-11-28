@@ -1,4 +1,5 @@
 import java.util.Properties
+import java.io.File
 
 plugins {
     id("com.android.application")
@@ -18,9 +19,32 @@ val localProps = Properties().apply {
     }
 }
 
+// Read properties from gradle.properties
+val gradleProps = Properties()
+val gradlePropsFile = rootProject.file("gradle.properties")
+if (gradlePropsFile.exists()) {
+    gradlePropsFile.reader().use { gradleProps.load(it) }
+}
+
+
 android {
     namespace = "com.ansh.awsnotifier"
     compileSdk = 35
+
+    signingConfigs {
+        create("release") {
+            val storeFilePath = gradleProps.getProperty("MY_RELEASE_STORE_FILE")
+            if (storeFilePath != null) {
+                val storeFile = File(storeFilePath)
+                if (storeFile.exists()) {
+                    this.storeFile = storeFile
+                    this.storePassword = gradleProps.getProperty("MY_RELEASE_STORE_PASSWORD")
+                    this.keyAlias = gradleProps.getProperty("MY_RELEASE_KEY_ALIAS")
+                    this.keyPassword = gradleProps.getProperty("MY_RELEASE_KEY_PASSWORD")
+                }
+            }
+        }
+    }
 
     defaultConfig {
         applicationId = "com.ansh.awsnotifier"
@@ -60,6 +84,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Apply the signing configuration to the release build type
+            signingConfig = signingConfigs.getByName("release")
         }
         debug {
             isMinifyEnabled = false

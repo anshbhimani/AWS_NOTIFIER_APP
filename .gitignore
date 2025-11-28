@@ -1,16 +1,37 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+# Gradle cache
+.gradle/
+
+# Build directory (project- and module-level)
+build/
+
+# Kotlin compiler cache
+.kotlin/
+
+# Local configuration files (sdk.dir, secrets, etc.)
 local.properties
+gradle.properties
+
+# IDE files (Android Studio)
+.idea/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+
+# Keystore files (private signing keys)
+*.jks
+*.keystore
+keystore
+
+# Google Services configuration file
 google-services.json
+
+# Screenshot captures
+captures/
+
+# C/C++ temporary build files
+.cxx/
+.externalNativeBuild/
+
+# Log files
+*.log
