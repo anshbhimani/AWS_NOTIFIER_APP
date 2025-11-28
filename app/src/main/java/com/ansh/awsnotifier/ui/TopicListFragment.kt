@@ -1,18 +1,22 @@
 package com.ansh.awsnotifier.ui
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.ansh.awsnotifier.App
+import com.ansh.awsnotifier.R
 import com.ansh.awsnotifier.databinding.FragmentTopicListBinding
 import com.ansh.awsnotifier.session.UserSession
 import com.ansh.awsnotifier.ui.adapters.TopicAdapter
 import kotlinx.coroutines.launch
-import android.util.Log
 
 class TopicListFragment : Fragment() {
 
@@ -28,7 +32,6 @@ class TopicListFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        Log.d("SNS_DEBUG", "Inflated layout = ${binding.root.resources.getResourceName(binding.root.id)}")
         _binding = FragmentTopicListBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -41,8 +44,6 @@ class TopicListFragment : Fragment() {
         setupPullToRefresh()
         loadTopics()
         Log.d(TAG, "=== loadTopics() called ===")
-
-
     }
 
     override fun onResume() {
@@ -54,7 +55,8 @@ class TopicListFragment : Fragment() {
         topicAdapter = TopicAdapter(
             onSubscribe = { topicArn -> handleSubscribe(topicArn) },
             onUnsubscribe = { subscriptionArn -> handleUnsubscribe(subscriptionArn) },
-            onDelete = { _ -> }
+            onDelete = { _ -> },
+            onSendMessage = { topicArn -> showSendMessageDialog(topicArn) }
         )
 
         binding.recyclerView.apply {
@@ -159,6 +161,36 @@ class TopicListFragment : Fragment() {
                 loadTopics()
             } catch (e: Exception) {
                 Log.e(TAG, "Unsubscribe failed", e)
+            }
+        }
+    }
+
+    private fun showSendMessageDialog(topicArn: String) {
+        val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_send_message, null)
+        val messageInput = dialogView.findViewById<EditText>(R.id.messageInput)
+
+        AlertDialog.Builder(requireContext())
+            .setView(dialogView)
+            .setPositiveButton("Send") { _, _ ->
+                val message = messageInput.text.toString()
+                if (message.isNotEmpty()) {
+                    publishMessage(topicArn, message)
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun publishMessage(topicArn: String, message: String) {
+        lifecycleScope.launch {
+            val app = requireActivity().application as App
+            val sns = app.snsManager ?: return@launch
+            try {
+                sns.publish(topicArn, message)
+                Toast.makeText(context, "Message published", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(context, "Failed to publish message", Toast.LENGTH_SHORT).show()
+                Log.e(TAG, "Publish failed", e)
             }
         }
     }

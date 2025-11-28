@@ -33,7 +33,7 @@
             android:id="@+id/logoutBtn"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:background="@android:color/transparent"
             android:src="@drawable/ic_logout"
             android:contentDescription="Logout"
             app:tint="@color/oneui_text_secondary"/>
@@ -57,8 +57,8 @@
             android:id="@+id/searchBar"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:queryHint="Search topics"
-            android:iconifiedByDefault="false"
+            app:iconifiedByDefault="false"
+            app:queryHint="Search topics"
             android:background="@android:color/transparent"
             android:padding="6dp"/>
     </androidx.cardview.widget.CardView>

@@ -1,11 +1,12 @@
 package com.ansh.awsnotifier.ui
 
 import android.Manifest
-import android.content.*
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
@@ -17,18 +18,21 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.ContextCompat
-import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.ansh.awsnotifier.App
+import com.ansh.awsnotifier.R
 import com.ansh.awsnotifier.aws.DeviceRegistrar
 import com.ansh.awsnotifier.databinding.ActivityMainBinding
 import com.ansh.awsnotifier.session.UserSession
 import com.ansh.awsnotifier.ui.adapters.TopicAdapter
 import com.ansh.awsnotifier.ui.dialogs.EnterArnDialog
 import com.ansh.awsnotifier.ui.onboarding.OnboardingActivity
-import com.google.android.material.snackbar.Snackbar
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
 
@@ -51,6 +55,8 @@ class MainActivity : AppCompatActivity() {
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
+    private val fcmTokenDeferred = CompletableDeferred<String>()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -63,18 +69,18 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        // Ensure initial region ARN exists
-        val region = UserSession.getCurrentRegion(this)
-        if (region != null && UserSession.getPlatformArnForRegion(this, region).isNullOrEmpty()) {
-            showArnDialogForRegion.value = region
-        }
-
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         val app = application as App
         if (!app.hasCredentials()) {
             app.loadCredentialsIfAvailable()
+        }
+
+        // Ensure initial region ARN exists
+        val region = UserSession.getCurrentRegion(this)
+        if (region != null && UserSession.getPlatformArnForRegion(this, region).isNullOrEmpty()) {
+            showArnDialogForRegion.value = region
         }
 
         setupComposeArnDialogHost()
@@ -120,7 +126,7 @@ class MainActivity : AppCompatActivity() {
                 EnterArnDialog(
                     region = region,
                     onDismiss = { showArnDialogForRegion.value = null },
-                    onConfirm = { arn ->
+                    onConfirm = { arn: String ->
                         UserSession.savePlatformArnForRegion(this, region, arn)
                         showArnDialogForRegion.value = null
                         binding.progressBar.visibility = View.VISIBLE
@@ -238,6 +244,7 @@ class MainActivity : AppCompatActivity() {
         topicAdapter = TopicAdapter(
             onSubscribe = { topicArn -> subscribe(topicArn) },
             onUnsubscribe = { subArn -> unsubscribe(subArn) },
+            onSendMessage = { topicArn -> showSendMessageDialog(topicArn) },
             onDelete = { topicArn ->
                 // Show confirmation dialog before deleting
                 AlertDialog.Builder(this)
@@ -250,21 +257,6 @@ class MainActivity : AppCompatActivity() {
                     .show()
             }
         )
-        val swipe = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
-            override fun onMove(rv: RecyclerView, vh: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder) = false
-            override fun onSwiped(vh: RecyclerView.ViewHolder, dir: Int) {
-                val item = topicAdapter.currentList[vh.adapterPosition]
-                topicAdapter.notifyItemChanged(vh.adapterPosition)
-
-                Snackbar.make(binding.root, "Delete ${item.topicName}?", Snackbar.LENGTH_LONG)
-                    .setAction("Delete") {
-                        deleteTopic(item.topicArn)
-                    }.show()
-            }
-        }
-
-        ItemTouchHelper(swipe).attachToRecyclerView(binding.topicsRecyclerView)
-
 
         binding.topicsRecyclerView.layoutManager = LinearLayoutManager(this)
         binding.topicsRecyclerView.adapter = topicAdapter
@@ -341,6 +333,40 @@ class MainActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 e.printStackTrace()
                 Toast.makeText(this@MainActivity, "Unsubscribe failed", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // =======================================================================
+    // Publish Message
+    // =======================================================================
+    private fun showSendMessageDialog(topicArn: String) {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_send_message, null)
+        val messageInput = dialogView.findViewById<EditText>(R.id.messageInput)
+
+        AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setPositiveButton("Send") { _, _ ->
+                val message = messageInput.text.toString()
+                if (message.isNotEmpty()) {
+                    publishMessage(topicArn, message)
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun publishMessage(topicArn: String, message: String) {
+        scope.launch {
+            val app = application as App
+            val sns = app.snsManager ?: return@launch
+            try {
+                sns.publish(topicArn, message)
+                Toast.makeText(this@MainActivity, "Message published", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(this@MainActivity, "Failed to publish message", Toast.LENGTH_SHORT)
+                    .show()
+                Log.e("MainActivity", "Publish failed", e)
             }
         }
     }
@@ -424,17 +450,11 @@ class MainActivity : AppCompatActivity() {
                                     "Topic '$name' already exists in $currentRegion"
                                 e.message?.contains("credentials") == true ->
                                     "Authentication error. Check your AWS credentials"
-                                e.message?.contains("InvalidParameter") == true ->
-                                    "Invalid topic name format"
-                                else ->
-                                    "Failed to create topic: ${e.message}"
+                                else -> "Error"
                             }
 
-                            Toast.makeText(
-                                this@MainActivity,
-                                errorMessage,
-                                Toast.LENGTH_LONG
-                            ).show()
+                            Toast.makeText(this@MainActivity, errorMessage, Toast.LENGTH_LONG)
+                                .show()
 
                             Log.e("MainActivity", "Failed to create topic", e)
                         }
@@ -466,70 +486,49 @@ class MainActivity : AppCompatActivity() {
     // UI helpers
     // =======================================================================
     private fun loadInitialState() {
-        val region = UserSession.getCurrentRegion(this)
-        binding.currentRegionText.text = if (region != null) {
-            "Current: $region"
-        } else {
-            "Current: None"
-        }
         updateRegistrationStatus()
     }
 
-    private fun updateRegistrationStatus() {
-        val endpoint = UserSession.getDeviceEndpointArn(this)
-        val region = UserSession.getCurrentRegion(this)
-
-        binding.registrationStatus.text = when {
-            endpoint == null -> "⚠ Not registered"
-            region != null && !endpoint.contains(":$region:") ->
-                "⚠ Registered in another region"
-            else -> "✓ Registered"
-        }
-    }
-
-    private suspend fun waitForFcmToken(): String {
-        repeat(20) {
-            val token = UserSession.getFcmToken(this)
-            if (token != null) return token
-            delay(150)
-        }
-        throw Exception("FCM token not available")
-    }
-
     private fun askNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-            requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+                PackageManager.PERMISSION_GRANTED
+            ) {
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
         }
     }
 
     // =======================================================================
-    // Broadcast
+    // FCM Token & Registration
     // =======================================================================
-    private val receiver = object : BroadcastReceiver() {
-        override fun onReceive(c: Context?, i: Intent?) {
-            updateRegistrationStatus()
+    private suspend fun waitForFcmToken(): String {
+        val fromPrefs = UserSession.getFcmToken(this)
+        if (fromPrefs != null) return fromPrefs
+        return fcmTokenDeferred.await()
+    }
+
+    private fun updateRegistrationStatus() {
+        scope.launch {
+            val token = UserSession.getFcmToken(this@MainActivity) ?: "No token yet"
+            val endpointArn =
+                UserSession.getDeviceEndpointArn(this@MainActivity) ?: "Not registered"
+            val currentRegion = UserSession.getCurrentRegion(this@MainActivity)
+            val platformArn =
+                UserSession.getPlatformArnForRegion(this@MainActivity, currentRegion ?: "")
+
+            val statusText = """
+            FCM Token: ${token.take(32)}...
+            Endpoint ARN: $endpointArn
+            Platform ARN ($currentRegion): $platformArn
+            """.trimIndent()
+
+            // This will fail if binding is not initialized yet. Guarding it.
+            if (::binding.isInitialized) {
+                binding.registrationStatus.text = statusText
+            }
+            Log.d("FCM_TOKEN", "Token: $token")
+            Log.d("ENDPOINT_ARN", "Endpoint ARN: $endpointArn")
         }
-    }
-
-    override fun onStart() {
-        super.onStart()
-        registerReceiver(
-            receiver,
-            IntentFilter("DEVICE_REGISTERED"),
-            Context.RECEIVER_NOT_EXPORTED
-        )
-    }
-
-    override fun onStop() {
-        super.onStop()
-        unregisterReceiver(receiver)
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        scope.cancel()
     }
 }

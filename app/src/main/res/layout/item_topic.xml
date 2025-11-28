@@ -1,107 +1,185 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView
+<androidx.cardview.widget.CardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
-    app:cardElevation="3dp"
-    app:cardCornerRadius="14dp"
-    android:foreground="?attr/selectableItemBackgroundBorderless">
+    android:layout_marginStart="8dp"
+    android:layout_marginEnd="8dp"
+    android:layout_marginBottom="12dp"
+    app:cardBackgroundColor="@color/oneui_card_bg"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="2dp">
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Row: topic name + region badge -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <TextView
-                android:id="@+id/topicName"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Topic Name"
-                android:textSize="17sp"
-                android:textStyle="bold"
-                android:textColor="@android:color/black"/>
-
-            <!-- Region Badge -->
-            <TextView
-                android:id="@+id/regionBadge"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingLeft="10dp"
-                android:paddingRight="10dp"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp"
-                android:background="@drawable/badge_region"
-                android:text="us-east-1"
-                android:textColor="@android:color/white"
-                android:textSize="12sp"/>
-        </LinearLayout>
-
-        <!-- ARN -->
+        <!-- Topic icon (emoji) -->
         <TextView
-            android:id="@+id/topicArn"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="arn:aws:sns:..."
-            android:textSize="13sp"
-            android:textColor="?android:textColorSecondary"
-            android:maxLines="2"
-            android:ellipsize="end"/>
+            android:id="@+id/topicIcon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:text="📢"
+            android:textSize="24sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- Status + Buttons -->
-        <LinearLayout
-            android:layout_width="match_parent"
+        <!-- Topic name -->
+        <TextView
+            android:id="@+id/topicName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Topic Name"
+            android:textColor="@color/oneui_text_primary"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toStartOf="@id/regionBadge"
+            app:layout_constraintStart_toEndOf="@id/topicIcon"
+            app:layout_constraintTop_toTopOf="@id/topicIcon" />
+
+        <!-- Subscription status -->
+        <TextView
+            android:id="@+id/subscriptionStatus"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="8dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Not subscribed"
+            android:textColor="@color/oneui_text_secondary"
+            android:textSize="13sp"
+            app:layout_constraintBottom_toBottomOf="@id/topicIcon"
+            app:layout_constraintEnd_toStartOf="@id/regionBadge"
+            app:layout_constraintStart_toEndOf="@id/topicIcon"
+            app:layout_constraintTop_toBottomOf="@id/topicName" />
+
+        <!-- Region badge -->
+        <com.google.android.material.chip.Chip
+            android:id="@+id/regionBadge"
+            style="@style/Widget.MaterialComponents.Chip.Action"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="us-east-1"
+            android:textSize="11sp"
+            app:chipMinHeight="28dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/topicIcon" />
+
+        <!-- Divider -->
+        <View
+            android:id="@+id/divider"
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_marginTop="12dp"
+            android:alpha="0.12"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/topicIcon" />
+
+        <!-- ARN label -->
+        <TextView
+            android:id="@+id/arnLabel"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
+            android:letterSpacing="0.05"
+            android:text="ARN"
+            android:textColor="@color/oneui_text_secondary"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/divider" />
+
+        <!-- ARN text -->
+        <TextView
+            android:id="@+id/topicArn"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="8dp"
+            android:ellipsize="end"
+            android:fontFamily="monospace"
+            android:maxLines="2"
+            android:text="arn:aws:sns:us-east-1:123456789012:MyTopic"
+            android:textColor="@color/oneui_text_primary"
+            android:textSize="12sp"
+            app:layout_constraintEnd_toStartOf="@id/btnCopyArn"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/arnLabel" />
+
+        <!-- Copy ARN button -->
+        <ImageButton
+            android:id="@+id/btnCopyArn"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="Copy ARN"
+            android:padding="8dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_copy"
+            app:layout_constraintBottom_toBottomOf="@id/topicArn"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/topicArn"
+            app:tint="@color/oneui_text_secondary" />
+
+        <!-- Action buttons row -->
+        <LinearLayout
+            android:id="@+id/actionButtons"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="end"
             android:orientation="horizontal"
-            android:gravity="center_vertical">
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/topicArn">
 
-            <TextView
-                android:id="@+id/subscriptionStatus"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Not subscribed"
-                android:textSize="14sp"/>
-
-            <ImageButton
-                android:id="@+id/btnCopyArn"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:contentDescription="Copy"
-                android:src="@drawable/ic_copy" />
-
-            <Button
+            <!-- Subscribe/Unsubscribe button -->
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnAction"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="40dp"
                 android:text="Subscribe"
-                android:layout_marginStart="8dp"/>
+                android:minWidth="100dp"
+                android:textSize="13sp"
+                app:cornerRadius="20dp" />
 
+            <!-- Send message button -->
+            <ImageButton
+                android:id="@+id/btnSendMessage"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:background="@android:color/transparent"
+                android:contentDescription="Send Message"
+                android:padding="8dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_notification" />
+
+            <!-- Delete button -->
             <ImageButton
                 android:id="@+id/btnDelete"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="4dp"
+                android:background="@android:color/transparent"
                 android:contentDescription="Delete"
                 android:src="@drawable/ic_delete"
-                app:tint="?attr/colorError"
-                android:layout_marginStart="8dp"/>
+                android:padding="8dp"
+                android:scaleType="centerInside" />
+
         </LinearLayout>
 
-    </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
-</com.google.android.material.card.MaterialCardView>
+</androidx.cardview.widget.CardView>

@@ -3,7 +3,6 @@ package com.ansh.awsnotifier.ui.adapters
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -19,7 +18,8 @@ import com.google.android.material.color.MaterialColors
 class TopicAdapter(
     private val onSubscribe: (String) -> Unit,
     private val onUnsubscribe: (String) -> Unit,
-    private val onDelete: (String) -> Unit
+    private val onDelete: (String) -> Unit,
+    private val onSendMessage: (String) -> Unit
 ) : ListAdapter<TopicItem, TopicAdapter.TopicViewHolder>(DiffCallback) {
 
     private var originalItems: List<TopicItem> = emptyList()
@@ -101,6 +101,12 @@ class TopicAdapter(
             // Copy ARN button
             binding.btnCopyArn.setOnClickListener {
                 copyArn(ctx, item.topicArn)
+            }
+
+            // Send Message
+            binding.btnSendMessage.setOnClickListener {
+                animateClick(binding.btnSendMessage)
+                onSendMessage(item.topicArn)
             }
 
             // Long press card to copy ARN

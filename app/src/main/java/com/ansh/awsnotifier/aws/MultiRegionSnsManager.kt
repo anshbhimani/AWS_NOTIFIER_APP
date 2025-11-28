@@ -2,7 +2,17 @@ package com.ansh.awsnotifier.aws
 
 import android.util.Log
 import aws.sdk.kotlin.services.sns.SnsClient
-import aws.sdk.kotlin.services.sns.model.*
+import aws.sdk.kotlin.services.sns.model.CreatePlatformEndpointRequest
+import aws.sdk.kotlin.services.sns.model.CreateTopicRequest
+import aws.sdk.kotlin.services.sns.model.DeleteEndpointRequest
+import aws.sdk.kotlin.services.sns.model.DeleteTopicRequest
+import aws.sdk.kotlin.services.sns.model.ListSubscriptionsRequest
+import aws.sdk.kotlin.services.sns.model.ListTopicsRequest
+import aws.sdk.kotlin.services.sns.model.PublishRequest
+import aws.sdk.kotlin.services.sns.model.SetEndpointAttributesRequest
+import aws.sdk.kotlin.services.sns.model.SubscribeRequest
+import aws.sdk.kotlin.services.sns.model.Subscription
+import aws.sdk.kotlin.services.sns.model.UnsubscribeRequest
 import aws.smithy.kotlin.runtime.auth.awscredentials.CredentialsProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -196,8 +206,24 @@ class MultiRegionSnsManager(
         }
 
     // ------------------------------------------------------------
-//  CREATE & DELETE TOPIC
-// ------------------------------------------------------------
+    //  PUBLISH
+    // ------------------------------------------------------------
+
+    suspend fun publish(topicArn: String, message: String) = withContext(Dispatchers.IO) {
+        val region = topicArn.split(":")[3]
+        getClientForRegion(region).use { sns ->
+            sns.publish(
+                PublishRequest {
+                    this.topicArn = topicArn
+                    this.message = message
+                }
+            )
+        }
+    }
+
+    // ------------------------------------------------------------
+    //  CREATE & DELETE TOPIC
+    // ------------------------------------------------------------
 
     suspend fun createTopic(name: String, region: String): String = withContext(Dispatchers.IO) {
         getClientForRegion(region).use { sns ->
