@@ -75,12 +75,13 @@
                 android:text="Not subscribed"
                 android:textSize="14sp"/>
 
-            <Button
+            <ImageButton
                 android:id="@+id/btnCopyArn"
                 style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Copy"/>
+                android:contentDescription="Copy"
+                android:src="@drawable/ic_copy" />
 
             <Button
                 android:id="@+id/btnAction"
@@ -90,13 +91,14 @@
                 android:text="Subscribe"
                 android:layout_marginStart="8dp"/>
 
-            <Button
+            <ImageButton
                 android:id="@+id/btnDelete"
                 style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Delete"
-                android:textColor="?attr/colorError"
+                android:contentDescription="Delete"
+                android:src="@drawable/ic_delete"
+                app:tint="?attr/colorError"
                 android:layout_marginStart="8dp"/>
         </LinearLayout>
 
