@@ -27,7 +27,8 @@ An Android application for managing AWS Simple Notification Service (SNS) topics
 
 ## Screenshots
 
-*(Placeholder for UI screenshots)*
+** Notification Screenshot **
+![1000085126](https://github.com/user-attachments/assets/ca32972c-9644-4325-a3b3-fd65338c966c)
 
 | Onboarding Screen                               | Main Screen (Topic List)                          | Create Topic Dialog                             |
 | ----------------------------------------------- | ------------------------------------------------- | ----------------------------------------------- |
