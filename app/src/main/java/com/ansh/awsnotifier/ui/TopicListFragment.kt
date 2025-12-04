@@ -17,6 +17,10 @@ import com.ansh.awsnotifier.databinding.FragmentTopicListBinding
 import com.ansh.awsnotifier.session.UserSession
 import com.ansh.awsnotifier.ui.adapters.TopicAdapter
 import kotlinx.coroutines.launch
+import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class TopicListFragment : Fragment() {
 
@@ -186,7 +190,18 @@ class TopicListFragment : Fragment() {
             val app = requireActivity().application as App
             val sns = app.snsManager ?: return@launch
             try {
-                sns.publish(topicArn, message)
+                val sdf = SimpleDateFormat("dd MMM yyyy | HH:mm:ss", Locale.getDefault())
+
+                val innerJson = JSONObject().apply {
+                    put("Message", message)
+                    put("Timestamp", sdf.format(Date()))
+                }.toString()
+
+                val envelope = JSONObject().apply {
+                    put("default", innerJson)
+                }.toString()
+
+                sns.publish(topicArn, envelope)
                 Toast.makeText(context, "Message published", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 Toast.makeText(context, "Failed to publish message", Toast.LENGTH_SHORT).show()

@@ -1,6 +1,7 @@
 package com.ansh.awsnotifier.ui
 
 import android.Manifest
+import android.app.Dialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -11,6 +12,7 @@ import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.EditText
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -33,6 +35,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
@@ -68,6 +74,16 @@ class MainActivity : AppCompatActivity() {
             finish()
             return
         }
+
+        if (intent.hasExtra("message")) {
+            val title = intent.getStringExtra("title")
+            val message = intent.getStringExtra("message")
+            val topicArn = intent.getStringExtra("topicArn")
+            val timestamp = intent.getLongExtra("timestamp", System.currentTimeMillis())
+
+            showNotificationDialog(title, message, topicArn, timestamp)
+        }
+
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -360,9 +376,27 @@ class MainActivity : AppCompatActivity() {
         scope.launch {
             val app = application as App
             val sns = app.snsManager ?: return@launch
+            val sdf = SimpleDateFormat("dd MMM yyyy | HH:mm:ss", Locale.getDefault())
+
             try {
-                sns.publish(topicArn, message)
+                // Build SNS JSON payload
+                val json = JSONObject().apply {
+                    put("Message", message)
+                    put("Subject", "Notification")
+                    put("TopicArn", topicArn)
+                    put("Timestamp", sdf.format(Date()))
+                }.toString()
+
+                // Wrap into SNS JSON envelope
+                val envelope = JSONObject().apply {
+                    put("default", json)
+                }.toString()
+
+                // Publish with structured message
+                sns.publish(topicArn, envelope)
+
                 Toast.makeText(this@MainActivity, "Message published", Toast.LENGTH_SHORT).show()
+
             } catch (e: Exception) {
                 Toast.makeText(this@MainActivity, "Failed to publish message", Toast.LENGTH_SHORT)
                     .show()
@@ -370,6 +404,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
 
     // =======================================================================
     // Dialogs: create topic + add custom topic ARN
@@ -464,6 +499,26 @@ class MainActivity : AppCompatActivity() {
             .setNegativeButton("Cancel", null)
             .show()
     }
+
+    private fun showNotificationDialog(
+        title: String?,
+        message: String?,
+        topicArn: String?,
+        time: Long
+    ) {
+        val dialog = Dialog(this)
+        dialog.setContentView(R.layout.dialog_notification_detail)
+
+        dialog.findViewById<TextView>(R.id.title).text = title
+        dialog.findViewById<TextView>(R.id.message).text = message
+        dialog.findViewById<TextView>(R.id.topic).text = topicArn ?: "Unknown Topic"
+
+        val sdf = SimpleDateFormat("dd MMM yyyy | HH:mm:ss", Locale.getDefault())
+        dialog.findViewById<TextView>(R.id.time).text = sdf.format(Date(time))
+
+        dialog.show()
+    }
+
 
     private fun showAddTopicArnDialog() {
         val input = EditText(this)
