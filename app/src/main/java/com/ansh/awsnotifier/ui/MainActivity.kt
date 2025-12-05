@@ -123,7 +123,8 @@ class MainActivity : AppCompatActivity() {
 
             try {
                 sns.deleteTopic(topicArn)
-                UserSession.removeSubscription(this@MainActivity, topicArn)
+                // Fix: Use the new function to remove all local subscriptions associated with the topicArn
+                UserSession.removeSubscriptionsByTopicArn(this@MainActivity, topicArn) 
                 loadTopics()
             } catch (e: Exception) {
                 e.printStackTrace()

@@ -155,6 +155,12 @@ object UserSession {
         saveSubscriptions(context, list)
     }
 
+    fun removeSubscriptionsByTopicArn(context: Context, topicArn: String) {
+        val list = loadSubscriptions(context)
+        list.removeAll { it.topicArn == topicArn }
+        saveSubscriptions(context, list)
+    }
+
     fun getAllSubscriptions(context: Context): List<StoredSubscription> {
         return loadSubscriptions(context)
     }
