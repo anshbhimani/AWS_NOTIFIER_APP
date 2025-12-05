@@ -121,14 +121,48 @@ class MainActivity : AppCompatActivity() {
             val app = application as App
             val sns = app.snsManager ?: return@launch
 
+            binding.progressBar.visibility = View.VISIBLE
+
             try {
+                // Step 1: Unsubscribe all local subscriptions from this topic first.
+                val subscriptions = UserSession.getAllSubscriptions(this@MainActivity)
+                    .filter { it.topicArn == topicArn }
+
+                subscriptions.forEach { sub ->
+                    try {
+                        // Unsubscribe from AWS
+                        sns.unsubscribe(sub.subscriptionArn)
+                        Log.d(
+                            "MainActivity",
+                            "Unsubscribed from ${sub.subscriptionArn} before topic deletion"
+                        )
+                    } catch (e: Exception) {
+                        Log.e(
+                            "MainActivity",
+                            "Failed to unsubscribe ${sub.subscriptionArn} during topic deletion process. Continuing...",
+                            e
+                        )
+                        // Log but continue to delete the topic
+                    }
+                }
+
+                // Step 2: Delete the topic from AWS
                 sns.deleteTopic(topicArn)
-                // Fix: Use the new function to remove all local subscriptions associated with the topicArn
-                UserSession.removeSubscriptionsByTopicArn(this@MainActivity, topicArn) 
+                Log.d("MainActivity", "Deleted topic: $topicArn")
+
+                // Step 3: Clean up all local records (both topic and subscriptions)
+                UserSession.removeSubscriptionsByTopicArn(this@MainActivity, topicArn)
                 loadTopics()
+
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(this@MainActivity, "Failed to delete topic", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this@MainActivity,
+                    "Failed to delete topic: ${e.message}",
+                    Toast.LENGTH_LONG
+                ).show()
+            } finally {
+                binding.progressBar.visibility = View.GONE
             }
         }
     }
