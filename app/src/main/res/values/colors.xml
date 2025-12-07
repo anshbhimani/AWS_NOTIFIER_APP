@@ -1,18 +1,96 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
-    <color name="background_dark">#0D0F12</color>
-    <color name="oneui_card_bg">#1C1E22</color>
-    <color name="oneui_text_primary">#FFFFFF</color>
-    <color name="oneui_text_secondary">#B0B3B8</color>
-    <color name="oneui_chip_text">#E5E5E5</color>
-    <color name="dark_gray">#333333</color>
-    <color name="md_theme_primary">#0061A8</color>
+    <!-- Professional Enterprise Dark Theme - No Gimmicks -->
 
+    <!-- Primary Colors - Subtle AWS Orange for key actions only -->
+    <color name="md_theme_primary">#FF9900</color>
+    <color name="md_theme_onPrimary">#000000</color>
+    <color name="md_theme_primaryContainer">#232F3E</color> <!-- AWS Dark Blue -->
+    <color name="md_theme_onPrimaryContainer">#FFFFFF</color>
+
+    <!-- Secondary Colors - Professional Blue-Gray -->
+    <color name="md_theme_secondary">#8A9BA8</color>
+    <color name="md_theme_onSecondary">#000000</color>
+    <color name="md_theme_secondaryContainer">#2C3E50</color>
+    <color name="md_theme_onSecondaryContainer">#ECF0F1</color>
+
+    <!-- Tertiary Colors - Minimal accent -->
+    <color name="md_theme_outlineVariant">#3F3F3F</color>
+    <color name="md_theme_tertiary">#7B8A93</color>
+    <color name="md_theme_onTertiary">#FFFFFF</color>
+    <color name="md_theme_tertiaryContainer">#34495E</color>
+    <color name="md_theme_onTertiaryContainer">#FFFFFF</color>
+
+    <!-- Error Colors - Professional Red -->
+    <color name="md_theme_error">#E74C3C</color>
+    <color name="md_theme_onError">#FFFFFF</color>
+    <color name="md_theme_errorContainer">#C0392B</color>
+    <color name="md_theme_onErrorContainer">#FFFFFF</color>
+
+    <!-- Background & Surface - Clean Professional Dark -->
+    <color name="md_theme_background">#0F1419</color> <!-- Almost black -->
+    <color name="md_theme_onBackground">#E8EAED</color>
+    <color name="md_theme_surface">#1A1F26</color> <!-- Slightly elevated -->
+    <color name="md_theme_onSurface">#FFFFFF</color>
+    <color name="md_theme_surfaceVariant">#242A31</color>
+    <color name="md_theme_onSurfaceVariant">#A8ABAD</color>
+
+    <!-- Inverse Colors -->
+    <color name="md_theme_inverseOnSurface">#0F1419</color>
+    <color name="md_theme_inverseSurface">#E8EAED</color>
+    <color name="md_theme_inversePrimary">#FF9900</color>
+
+    <!-- Surface Tints -->
+    <color name="md_theme_surfaceTint">#FF9900</color>
+    <color name="md_theme_scrim">#000000</color>
+
+    <!-- Legacy Android Colors -->
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+    <color name="red">#E74C3C</color>
+    <color name="purple_200">#7B8A93</color>
+    <color name="purple_500">#5D6D7E</color>
+    <color name="purple_700">#34495E</color>
+    <color name="teal_200">#52ADBA</color>
+    <color name="teal_700">#2C5D68</color>
+
+    <!-- App-Specific Colors -->
+    <color name="background_dark">#0F1419</color>
+    <color name="oneui_text_primary">#FFFFFF</color>
+    <color name="oneui_text_secondary">#8E9499</color>
+    <color name="oneui_chip_text">#FFFFFF</color>
+    <color name="oneui_surface_secondary">#242A31</color>
+    <color name="dark_gray">#2F353D</color>
+
+    <!-- Status Colors - Professional, no bright colors -->
+    <color name="status_warning">#FFC107</color>   <!-- amber -->
+    <color name="status_success">#4CAF50</color>   <!-- green -->
+    <color name="status_error">#F44336</color>     <!-- red -->
+    <color name="md_theme_outline">#444444</color>
+    <color name="oneui_card_bg">#1E1E1E</color>
+
+    <color name="status_info">#3498DB</color> <!-- Muted blue -->
+    <color name="status_subscribed">#27AE60</color>
+    <color name="status_not_subscribed">#5D6D7E</color>
+
+    <!-- Functional Colors -->
+    <color name="aws_orange">#FF9900</color> <!-- Only for AWS branding -->
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#8E9499</color>
+    <color name="text_tertiary">#5D6568</color>
+    <color name="text_disabled">#3A4048</color>
+
+    <!-- Dividers & Separators -->
+    <color name="divider_color">#2F353D</color>
+    <color name="separator_light">#242A31</color>
+
+    <!-- Interactive States -->
+    <color name="ripple_color">#1AFFFFFF</color> <!-- 10% white -->
+    <color name="hover_overlay">#0DFFFFFF</color> <!-- 5% white -->
+    <color name="pressed_overlay">#26FFFFFF</color> <!-- 15% white -->
+
+    <!-- Transparent Overlays -->
+    <color name="overlay_scrim">#B3000000</color> <!-- 70% black -->
+    <color name="overlay_dim">#80000000</color> <!-- 50% black -->
+    <color name="overlay_light">#1A000000</color> <!-- 10% black -->
 </resources>

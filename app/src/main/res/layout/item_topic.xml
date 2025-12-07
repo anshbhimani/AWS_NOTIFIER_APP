@@ -1,31 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView
+<com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginStart="8dp"
     android:layout_marginEnd="8dp"
-    android:layout_marginBottom="12dp"
-    app:cardBackgroundColor="@color/oneui_card_bg"
+    android:layout_marginTop="6dp"
+    android:layout_marginBottom="6dp"
+    app:cardBackgroundColor="@color/md_theme_background"
     app:cardCornerRadius="16dp"
-    app:cardElevation="2dp">
+    app:cardElevation="4dp"
+    app:strokeColor="@color/md_theme_outline"
+    app:strokeWidth="1dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="16dp">
 
-        <!-- Topic icon (emoji) -->
-        <TextView
-            android:id="@+id/topicIcon"
+        <!-- Topic icon (emoji) with background -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/iconContainer"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:gravity="center"
-            android:text="📢"
-            android:textSize="24sp"
+            app:cardBackgroundColor="@color/md_theme_primaryContainer"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent">
+
+            <TextView
+                android:id="@+id/topicIcon"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="📢"
+                android:textSize="20sp" />
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- Topic name -->
         <TextView
@@ -41,26 +53,42 @@
             android:textSize="16sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toStartOf="@id/regionBadge"
-            app:layout_constraintStart_toEndOf="@id/topicIcon"
-            app:layout_constraintTop_toTopOf="@id/topicIcon" />
+            app:layout_constraintStart_toEndOf="@id/iconContainer"
+            app:layout_constraintTop_toTopOf="@id/iconContainer" />
 
-        <!-- Subscription status -->
-        <TextView
-            android:id="@+id/subscriptionStatus"
+        <!-- Subscription status with icon -->
+        <LinearLayout
+            android:id="@+id/statusContainer"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
             android:layout_marginTop="4dp"
             android:layout_marginEnd="8dp"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:text="Not subscribed"
-            android:textColor="@color/oneui_text_secondary"
-            android:textSize="13sp"
-            app:layout_constraintBottom_toBottomOf="@id/topicIcon"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            app:layout_constraintBottom_toBottomOf="@id/iconContainer"
             app:layout_constraintEnd_toStartOf="@id/regionBadge"
-            app:layout_constraintStart_toEndOf="@id/topicIcon"
-            app:layout_constraintTop_toBottomOf="@id/topicName" />
+            app:layout_constraintStart_toEndOf="@id/iconContainer"
+            app:layout_constraintTop_toBottomOf="@id/topicName">
+
+            <View
+                android:id="@+id/statusIndicator"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/status_indicator_bg" />
+
+            <TextView
+                android:id="@+id/subscriptionStatus"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Not subscribed"
+                android:textColor="@color/oneui_text_secondary"
+                android:textSize="13sp" />
+        </LinearLayout>
 
         <!-- Region badge -->
         <com.google.android.material.chip.Chip
@@ -69,21 +97,24 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="us-east-1"
+            android:textColor="@color/md_theme_onSecondaryContainer"
             android:textSize="11sp"
+            app:chipBackgroundColor="@color/md_theme_secondaryContainer"
             app:chipMinHeight="28dp"
+            app:chipStrokeWidth="0dp"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/topicIcon" />
+            app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- Divider -->
+        <!-- Divider with gradient effect -->
         <View
             android:id="@+id/divider"
             android:layout_width="0dp"
             android:layout_height="1dp"
             android:layout_marginTop="12dp"
-            android:alpha="0.12"
+            android:background="@color/md_theme_outline"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/topicIcon" />
+            app:layout_constraintTop_toBottomOf="@id/iconContainer" />
 
         <!-- ARN label -->
         <TextView
@@ -91,9 +122,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:letterSpacing="0.05"
+            android:letterSpacing="0.1"
             android:text="ARN"
-            android:textColor="@color/oneui_text_secondary"
+            android:textAllCaps="true"
+            android:textColor="@color/md_theme_secondary"
             android:textSize="11sp"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
@@ -110,7 +142,7 @@
             android:fontFamily="monospace"
             android:maxLines="2"
             android:text="arn:aws:sns:us-east-1:123456789012:MyTopic"
-            android:textColor="@color/oneui_text_primary"
+            android:textColor="@color/oneui_text_secondary"
             android:textSize="12sp"
             app:layout_constraintEnd_toStartOf="@id/btnCopyArn"
             app:layout_constraintStart_toStartOf="parent"
@@ -121,22 +153,22 @@
             android:id="@+id/btnCopyArn"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:background="@android:color/transparent"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Copy ARN"
             android:padding="8dp"
             android:scaleType="centerInside"
             android:src="@drawable/ic_copy"
             app:layout_constraintBottom_toBottomOf="@id/topicArn"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/topicArn"
-            app:tint="@color/oneui_text_secondary" />
+            app:layout_constraintTop_toTopOf="@id/arnLabel"
+            app:tint="@color/md_theme_secondary" />
 
         <!-- Action buttons row -->
         <LinearLayout
             android:id="@+id/actionButtons"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="12dp"
             android:gravity="end"
             android:orientation="horizontal"
             app:layout_constraintEnd_toEndOf="parent"
@@ -147,39 +179,63 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnAction"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="40dp"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:minHeight="40dp"
                 android:text="Subscribe"
-                android:minWidth="100dp"
                 android:textSize="13sp"
-                app:cornerRadius="20dp" />
+                android:textColor="@color/md_theme_primary"
+                app:cornerRadius="20dp"
+                app:strokeColor="@color/md_theme_primary"
+                app:strokeWidth="1.5dp" />
 
             <!-- Send message button -->
-            <ImageButton
-                android:id="@+id/btnSendMessage"
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="40dp"
                 android:layout_height="40dp"
-                android:layout_marginStart="8dp"
-                android:background="@android:color/transparent"
-                android:contentDescription="Send Message"
-                android:padding="8dp"
-                android:scaleType="centerInside"
-                android:src="@drawable/ic_notification" />
+                android:layout_marginEnd="4dp"
+                app:cardBackgroundColor="@color/md_theme_secondaryContainer"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
+
+                <ImageButton
+                    android:id="@+id/btnSendMessage"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Send Test Message"
+                    android:padding="8dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/ic_notification"
+                    app:tint="@color/md_theme_onSecondaryContainer" />
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Delete button -->
-            <ImageButton
-                android:id="@+id/btnDelete"
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="40dp"
                 android:layout_height="40dp"
-                android:layout_marginStart="4dp"
-                android:background="@android:color/transparent"
-                android:contentDescription="Delete"
-                android:src="@drawable/ic_delete"
-                android:padding="8dp"
-                android:scaleType="centerInside" />
+                app:cardBackgroundColor="@color/md_theme_errorContainer"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
+
+                <ImageButton
+                    android:id="@+id/btnDelete"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Delete Topic"
+                    android:padding="8dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/ic_delete"
+                    app:tint="@color/md_theme_onErrorContainer" />
+            </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

@@ -100,12 +100,14 @@ class MultiRegionSnsManager(
     //  LIST TOPICS (Across regions, safe in IO)
     // ------------------------------------------------------------
 
-    suspend fun listAllTopics(): List<String> = withContext(Dispatchers.IO) {
+    suspend fun listAllTopics(regionsToQuery: List<String>? = null): List<String> =
+        withContext(Dispatchers.IO) {
 
+            val regions = if (regionsToQuery.isNullOrEmpty()) supportedRegions else regionsToQuery
         val result = mutableListOf<String>()
 
         // ⚡ Optional Parallel Region Scanning (faster)
-        val tasks = supportedRegions.map { region ->
+            val tasks = regions.map { region ->
             async(Dispatchers.IO) {
                 try {
                     getClientForRegion(region).use { sns ->

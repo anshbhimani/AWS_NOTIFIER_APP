@@ -2,6 +2,9 @@ package com.ansh.awsnotifier.ui
 
 import android.Manifest
 import android.app.Dialog
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -45,7 +48,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
-    private val regions = listOf(
+    private val ALL_REGIONS_DISPLAY_NAME = "All Regions"
+
+    private val awsRegions = listOf(
         "us-east-1", "us-east-2",
         "us-west-1", "us-west-2",
         "ap-south-1", "ap-southeast-1",
@@ -53,6 +58,8 @@ class MainActivity : AppCompatActivity() {
         "eu-west-1", "eu-central-1",
         "sa-east-1"
     )
+
+    private val regions = listOf(ALL_REGIONS_DISPLAY_NAME) + awsRegions // List used for the spinner
 
     private val showArnDialogForRegion = mutableStateOf<String?>(null)
 
@@ -106,6 +113,7 @@ class MainActivity : AppCompatActivity() {
         setupSearch()
         loadInitialState()
         askNotificationPermission()
+        setupFcmTokenButton() // ADD THIS LINE
 
         // Auto-register + initial topic load
         scope.launch {
@@ -114,6 +122,81 @@ class MainActivity : AppCompatActivity() {
             updateRegistrationStatus()
         }
         loadTopics()
+    }
+
+    // =======================================================================
+    // FCM Token Button Setup
+    // =======================================================================
+    private fun setupFcmTokenButton() {
+        binding.btnShowFcmToken.setOnClickListener {
+            showFcmTokenDialog()
+        }
+    }
+
+    private fun showFcmTokenDialog() {
+        val currentRegion = UserSession.getCurrentRegion(this)
+        val regionDisplayName =
+            if (currentRegion == null || currentRegion == ALL_REGIONS_DISPLAY_NAME) {
+                ALL_REGIONS_DISPLAY_NAME
+            } else {
+                currentRegion
+            }
+
+        val token = UserSession.getFcmToken(this) ?: "No token available"
+        val endpointArn = UserSession.getDeviceEndpointArn(this) ?: "Not registered"
+        val platformArn = if (currentRegion != null && currentRegion != ALL_REGIONS_DISPLAY_NAME) {
+            UserSession.getPlatformArnForRegion(this, currentRegion) ?: "Not set for this region"
+        } else {
+            "Select a specific region"
+        }
+
+        val details = """
+            Region: $regionDisplayName
+            
+            FCM Token:
+            $token
+            
+            Platform ARN:
+            $platformArn
+            
+            Endpoint ARN:
+            $endpointArn
+        """.trimIndent()
+
+        val dialogView = LayoutInflater.from(this).inflate(
+            android.R.layout.simple_list_item_1,
+            null
+        ).apply {
+            findViewById<TextView>(android.R.id.text1).apply {
+                text = details
+                textSize = 12f
+                setTextIsSelectable(true)
+                setPadding(40, 40, 40, 40)
+            }
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Registration Details")
+            .setView(dialogView)
+            .setPositiveButton("Copy Token") { _, _ ->
+                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip = ClipData.newPlainText("FCM Token", token)
+                clipboard.setPrimaryClip(clip)
+                Toast.makeText(this, "FCM Token copied to clipboard", Toast.LENGTH_SHORT).show()
+            }
+            .setNeutralButton("Copy Platform ARN") { _, _ ->
+                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip = ClipData.newPlainText("Platform ARN", platformArn)
+                clipboard.setPrimaryClip(clip)
+                Toast.makeText(this, "Platform ARN copied", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Copy Endpoint ARN") { _, _ ->
+                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip = ClipData.newPlainText("Endpoint ARN", endpointArn)
+                clipboard.setPrimaryClip(clip)
+                Toast.makeText(this, "Endpoint ARN copied", Toast.LENGTH_SHORT).show()
+            }
+            .show()
     }
 
     private fun deleteTopic(topicArn: String) {
@@ -187,6 +270,7 @@ class MainActivity : AppCompatActivity() {
                             DeviceRegistrar.autoRegister(this@MainActivity)
                             updateRegistrationStatus()
                             binding.progressBar.visibility = View.GONE
+                            loadTopics() // Ensure topics are loaded after ARN setup
                         }
                     }
                 )
@@ -215,7 +299,15 @@ class MainActivity : AppCompatActivity() {
             }
 
             try {
-                val topicArns = sns.listAllTopics()
+                val selectedRegion = regions[binding.regionSpinner.selectedItemPosition]
+
+                val regionsToQuery = if (selectedRegion == ALL_REGIONS_DISPLAY_NAME) {
+                    awsRegions // Query all AWS regions
+                } else {
+                    listOf(selectedRegion) // Query only the selected region
+                }
+
+                val topicArns = sns.listAllTopics(regionsToQuery)
                 val localSubs = UserSession.getAllSubscriptions(this@MainActivity)
 
                 val topicItems = topicArns.map { arn ->
@@ -255,9 +347,13 @@ class MainActivity : AppCompatActivity() {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         binding.regionSpinner.adapter = adapter
 
+        // If saved region is null, default to ALL_REGIONS_DISPLAY_NAME index (0)
         val saved = UserSession.getCurrentRegion(this)
-        val idx = regions.indexOf(saved)
-        if (idx >= 0) binding.regionSpinner.setSelection(idx)
+        val idx = if (saved == null) 0 else regions.indexOf(saved)
+        if (idx >= 0) binding.regionSpinner.setSelection(idx) else binding.regionSpinner.setSelection(
+            0
+        )
+
 
         binding.regionSpinner.onItemSelectedListener =
             object : AdapterView.OnItemSelectedListener {
@@ -268,8 +364,17 @@ class MainActivity : AppCompatActivity() {
                     id: Long
                 ) {
                     val region = regions[position]
+
+                    if (region == ALL_REGIONS_DISPLAY_NAME) {
+                        UserSession.saveCurrentRegion(
+                            this@MainActivity,
+                            region
+                        ) // Clear current region
+                        loadTopics()
+                        return
+                    }
+
                     UserSession.saveCurrentRegion(this@MainActivity, region)
-                    binding.currentRegionText.text = "Current: $region"
 
                     val arn = UserSession.getPlatformArnForRegion(this@MainActivity, region)
                     if (arn.isNullOrEmpty()) {
@@ -281,6 +386,7 @@ class MainActivity : AppCompatActivity() {
                         waitForFcmToken()
                         DeviceRegistrar.autoRegister(this@MainActivity)
                         updateRegistrationStatus()
+                        loadTopics() // Reload topics for the new region
                     }
                 }
 
@@ -447,8 +553,12 @@ class MainActivity : AppCompatActivity() {
     private fun showCreateTopicDialog() {
         val currentRegion = UserSession.getCurrentRegion(this)
 
-        if (currentRegion == null) {
-            Toast.makeText(this, "Please select a region first", Toast.LENGTH_SHORT).show()
+        if (currentRegion == null || currentRegion == ALL_REGIONS_DISPLAY_NAME) {
+            Toast.makeText(
+                this,
+                "Please select a specific region before creating a topic.",
+                Toast.LENGTH_LONG
+            ).show()
             return
         }
 
@@ -520,7 +630,7 @@ class MainActivity : AppCompatActivity() {
                                     "Topic '$name' already exists in $currentRegion"
                                 e.message?.contains("credentials") == true ->
                                     "Authentication error. Check your AWS credentials"
-                                else -> "Error"
+                                else -> "Error: ${e.message}"
                             }
 
                             Toast.makeText(this@MainActivity, errorMessage, Toast.LENGTH_LONG)
@@ -556,8 +666,10 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun showAddTopicArnDialog() {
-        val input = EditText(this)
-        input.hint = "Topic ARN"
+        val input = EditText(this).apply {
+            hint = "Topic ARN"
+            setPadding(50, 30, 50, 30)
+        }
 
         AlertDialog.Builder(this)
             .setTitle("Subscribe to Topic ARN")
@@ -600,25 +712,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateRegistrationStatus() {
         scope.launch {
-            val token = UserSession.getFcmToken(this@MainActivity) ?: "No token yet"
-            val endpointArn =
-                UserSession.getDeviceEndpointArn(this@MainActivity) ?: "Not registered"
-            val currentRegion = UserSession.getCurrentRegion(this@MainActivity)
-            val platformArn =
-                UserSession.getPlatformArnForRegion(this@MainActivity, currentRegion ?: "")
+            val token = UserSession.getFcmToken(this@MainActivity)
+            val endpointArn = UserSession.getDeviceEndpointArn(this@MainActivity)
 
-            val statusText = """
-            FCM Token: ${token.take(32)}...
-            Endpoint ARN: $endpointArn
-            Platform ARN ($currentRegion): $platformArn
-            """.trimIndent()
-
-            // This will fail if binding is not initialized yet. Guarding it.
-            if (::binding.isInitialized) {
-                binding.registrationStatus.text = statusText
-            }
-            Log.d("FCM_TOKEN", "Token: $token")
-            Log.d("ENDPOINT_ARN", "Endpoint ARN: $endpointArn")
+            Log.d("FCM_TOKEN", "Token: ${token ?: "No token yet"}")
+            Log.d("ENDPOINT_ARN", "Endpoint ARN: ${endpointArn ?: "Not registered"}")
         }
     }
 }

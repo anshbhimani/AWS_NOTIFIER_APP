@@ -5,16 +5,32 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp"
+    android:background="@color/md_theme_background"
+    android:fitsSystemWindows="true"
     tools:context=".ui.MainActivity">
 
-    <!-- Compose host for ARN dialog -->
+    <!-- Top App Bar with gradient effect -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/topAppBar"
+        android:layout_width="0dp"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@drawable/toolbar_gradient"
+        android:elevation="4dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:menu="@menu/top_app_bar_menu"
+        app:navigationIcon="@drawable/ic_aws_sns_mini"
+        app:title="AWS Notifier"
+        app:titleTextColor="@color/white" />
+
+    <!-- Compose host -->
     <androidx.compose.ui.platform.ComposeView
         android:id="@+id/composeDialogHost"
         android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/topAppBar"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
@@ -23,50 +39,66 @@
         android:id="@+id/regionCard"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
         android:layout_marginTop="16dp"
+        app:cardBackgroundColor="@color/oneui_card_bg"
         app:cardElevation="4dp"
         app:cardCornerRadius="16dp"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/topAppBar"
+        app:strokeColor="@color/md_theme_outline"
+        app:strokeWidth="1dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="vertical"
             android:padding="16dp">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <!-- Header with icon -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="AWS Region"
-                android:textColor="?android:textColorPrimary"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:gravity="center"
+                    android:text="🌍"
+                    android:textSize="20sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:text="AWS Region"
+                    android:textColor="@color/oneui_text_primary"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <!-- FCM Token Button -->
+                <ImageButton
+                    android:id="@+id/btnShowFcmToken"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Show FCM Token"
+                    android:src="@android:drawable/ic_menu_info_details"
+                    app:tint="@color/md_theme_secondary" />
+            </LinearLayout>
 
             <Spinner
                 android:id="@+id/regionSpinner"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/spinner_background"
                 android:minHeight="48dp" />
-
-            <TextView
-                android:id="@+id/currentRegionText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="Current: None selected"
-                android:textColor="?android:textColorSecondary"
-                android:textSize="14sp" />
-
-            <TextView
-                android:id="@+id/registrationStatus"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="⚠ Not registered"
-                android:textSize="14sp" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
@@ -75,9 +107,15 @@
         android:id="@+id/topicsCard"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
         android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
         app:cardElevation="4dp"
         app:cardCornerRadius="16dp"
+        app:cardBackgroundColor="@color/oneui_card_bg"
+        app:strokeColor="@color/md_theme_outline"
+        app:strokeWidth="1dp"
         app:layout_constraintTop_toBottomOf="@id/regionCard"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -103,69 +141,87 @@
                     android:text="SNS Topics"
                     android:textSize="18sp"
                     android:textStyle="bold"
-                    android:textColor="?android:textColorPrimary"/>
+                    android:textColor="@color/oneui_text_primary" />
 
                 <ImageButton
                     android:id="@+id/btnRefreshTopics"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:src="@android:drawable/ic_popup_sync"
-                    android:contentDescription="Refresh topics"/>
+                    android:contentDescription="Refresh topics"
+                    app:tint="@color/md_theme_secondary" />
 
                 <ImageButton
                     android:id="@+id/btnAddCustomTopic"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:src="@android:drawable/ic_input_add"
-                    android:contentDescription="Add custom topic"/>
+                    android:contentDescription="Add custom topic"
+                    app:tint="@color/md_theme_secondary" />
 
                 <ImageButton
                     android:id="@+id/btnCreateTopic"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:src="@android:drawable/ic_menu_add"
-                    android:contentDescription="Create new topic"/>
+                    android:contentDescription="Create new topic"
+                    app:tint="@color/md_theme_primary" />
             </LinearLayout>
 
-            <!-- Count -->
+            <!-- Count with accent -->
             <TextView
                 android:id="@+id/topicCountText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="8dp"
                 android:text="0 topics available"
                 android:textSize="14sp"
-                android:textColor="?android:textColorSecondary"/>
+                android:textColor="@color/md_theme_secondary" />
 
-            <!-- Search -->
+            <!-- Search with custom styling -->
             <androidx.appcompat.widget.SearchView
                 android:id="@+id/searchTopics"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/search_background"
                 android:queryHint="Search topics..."
                 android:iconifiedByDefault="false" />
 
             <!-- Empty state -->
-            <TextView
+            <LinearLayout
                 android:id="@+id/emptyState"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="No topics available."
-                android:textSize="16sp"
-                android:textColor="?android:textColorSecondary"
-                android:visibility="gone"
-                android:gravity="center"/>
+                android:layout_marginTop="24dp"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:gravity="center"
+                    android:text="📭"
+                    android:textSize="48sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="No topics available"
+                    android:textColor="@color/oneui_text_secondary"
+                    android:textSize="16sp" />
+            </LinearLayout>
 
             <!-- Pull-to-refresh + list -->
             <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
                 android:id="@+id/swipeRefresh"
-                android:layout_width="354dp"
-                android:layout_height="443dp"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
                 android:layout_marginTop="12dp"
                 android:layout_weight="1">
 
@@ -173,6 +229,9 @@
                     android:id="@+id/topicsRecyclerView"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
+                    android:clipToPadding="false"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp"
                     tools:listitem="@layout/item_topic" />
             </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
@@ -184,6 +243,7 @@
         android:id="@+id/progressBar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:indeterminateTint="@color/md_theme_primary"
         android:visibility="gone"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"

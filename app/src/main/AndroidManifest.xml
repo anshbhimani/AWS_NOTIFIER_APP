@@ -13,7 +13,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AWSNotifier"
+        android:theme="@style/OneUI"
         tools:targetApi="31">
 
         <!-- Splash Activity - Entry Point -->
@@ -27,30 +27,17 @@
             </intent-filter>
         </activity>
 
-<!--        &lt;!&ndash; 🚀 TEST LAUNCHER ACTIVITY &ndash;&gt;-->
-<!--        <activity-->
-<!--            android:name=".ui.AwsTestActivity"-->
-<!--            android:exported="true"-->
-<!--            android:theme="@style/Theme.AWSNotifier">-->
-
-<!--            <intent-filter>-->
-<!--                <action android:name="android.intent.action.MAIN" />-->
-<!--                <category android:name="android.intent.category.LAUNCHER" />-->
-<!--            </intent-filter>-->
-
-<!--        </activity>-->
-
         <!-- Onboarding Activity (Compose-based) -->
         <activity
             android:name=".ui.onboarding.OnboardingActivity"
             android:exported="false"
-            android:theme="@style/Theme.AWSNotifier" />
+            android:theme="@style/OneUI" />
 
         <!-- Main Activity -->
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.AWSNotifier" />
+            android:theme="@style/OneUI" />
 
         <!-- Firebase Messaging Service -->
         <service
