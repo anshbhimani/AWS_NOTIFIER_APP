@@ -17,7 +17,6 @@ import aws.smithy.kotlin.runtime.auth.awscredentials.CredentialsProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
 
 class MultiRegionSnsManager(
     private val credentialsProvider: CredentialsProvider
@@ -212,30 +211,20 @@ class MultiRegionSnsManager(
     //  PUBLISH
     // ------------------------------------------------------------
 
-    suspend fun publish(topicArn: String, message: String) = withContext(Dispatchers.IO) {
+    suspend fun publish(topicArn: String, message: String, messageStructure: String? = null) =
+        withContext(Dispatchers.IO) {
         val region = topicArn.split(":")[3]
 
-        // Build structured SNS JSON
-        val structuredJson = JSONObject().apply {
-            put("Message", message)
-            put("Subject", "Notification")
-            put("TopicArn", topicArn)
-            put("Timestamp", System.currentTimeMillis())
-        }.toString()
-
-        // SNS requires the JSON payload to be wrapped in another JSON object
-        val envelope = JSONObject().apply {
-            put("default", structuredJson)
-        }.toString()
-
         getClientForRegion(region).use { sns ->
-            sns.publish(
-                PublishRequest {
-                    this.topicArn = topicArn
-                    this.messageStructure = "json"
-                    this.message = envelope
+            val request = PublishRequest {
+                this.topicArn = topicArn
+                this.message = message
+                messageStructure?.let {
+                    this.messageStructure = it
                 }
-            )
+            }
+
+            sns.publish(request)
         }
     }
 

@@ -520,21 +520,27 @@ class MainActivity : AppCompatActivity() {
             val sdf = SimpleDateFormat("dd MMM yyyy | HH:mm:ss", Locale.getDefault())
 
             try {
-                // Build SNS JSON payload
-                val json = JSONObject().apply {
-                    put("Message", message)
-                    put("Subject", "Notification")
-                    put("TopicArn", topicArn)
-                    put("Timestamp", sdf.format(Date()))
-                }.toString()
+                // Create FCM-specific notification structure
+                val fcmPayload = JSONObject().apply {
+                    put("notification", JSONObject().apply {
+                        put("title", "AWS SNS Notification")
+                        put("body", message)
+                    })
+                    put("data", JSONObject().apply {
+                        put("message", message)
+                        put("topicArn", topicArn)
+                        put("timestamp", sdf.format(Date()))
+                    })
+                }
 
-                // Wrap into SNS JSON envelope
-                val envelope = JSONObject().apply {
-                    put("default", json)
-                }.toString()
+                // Create the SNS message structure with protocol-specific formats
+                val snsMessage = JSONObject().apply {
+                    put("default", message)  // Fallback for other protocols
+                    put("GCM", fcmPayload.toString())  // FCM-specific payload
+                }
 
-                // Publish with structured message
-                sns.publish(topicArn, envelope)
+                // Publish with MessageStructure="json"
+                sns.publish(topicArn, snsMessage.toString(), messageStructure = "json")
 
                 Toast.makeText(this@MainActivity, "Message published", Toast.LENGTH_SHORT).show()
 
