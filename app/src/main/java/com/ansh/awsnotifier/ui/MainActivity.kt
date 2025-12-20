@@ -50,16 +50,8 @@ class MainActivity : AppCompatActivity() {
 
     private val ALL_REGIONS_DISPLAY_NAME = "All Regions"
 
-    private val awsRegions = listOf(
-        "us-east-1", "us-east-2",
-        "us-west-1", "us-west-2",
-        "ap-south-1", "ap-southeast-1",
-        "ap-southeast-2", "ap-northeast-1",
-        "eu-west-1", "eu-central-1",
-        "sa-east-1"
-    )
-
-    private val regions = listOf(ALL_REGIONS_DISPLAY_NAME) + awsRegions // List used for the spinner
+    private var awsRegions = mutableListOf<String>()
+    private var regions = mutableListOf<String>()
 
     private val showArnDialogForRegion = mutableStateOf<String?>(null)
 
@@ -91,7 +83,6 @@ class MainActivity : AppCompatActivity() {
             showNotificationDialog(title, message, topicArn, timestamp)
         }
 
-
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -100,28 +91,36 @@ class MainActivity : AppCompatActivity() {
             app.loadCredentialsIfAvailable()
         }
 
-        // Ensure initial region ARN exists
-        val region = UserSession.getCurrentRegion(this)
-        if (region != null && UserSession.getPlatformArnForRegion(this, region).isNullOrEmpty()) {
-            showArnDialogForRegion.value = region
-        }
+        // Show loading state
+        binding.progressBar.visibility = View.VISIBLE
 
-        setupComposeArnDialogHost()
-        setupRegionSpinner()
-        setupTopicsRecycler()
-        setupTopicControls()
-        setupSearch()
-        loadInitialState()
-        askNotificationPermission()
-        setupFcmTokenButton() // ADD THIS LINE
-
-        // Auto-register + initial topic load
+        // Setup everything in the correct order
         scope.launch {
-            waitForFcmToken()
-            DeviceRegistrar.autoRegister(this@MainActivity)
-            updateRegistrationStatus()
+            try {
+                // Step 1: Load regions first (this populates the regions list)
+                loadAvailableRegions()
+
+                // Step 2: Now setup UI (spinner will have data)
+                setupUI()
+
+                // Step 3: Register device and load topics
+                waitForFcmToken()
+                DeviceRegistrar.autoRegister(this@MainActivity)
+                updateRegistrationStatus()
+
+                // Step 4: Load topics for the selected region
+                loadTopics()
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Error during initialization", e)
+                Toast.makeText(
+                    this@MainActivity,
+                    "Error loading app: ${e.message}",
+                    Toast.LENGTH_LONG
+                ).show()
+            } finally {
+                binding.progressBar.visibility = View.GONE
+            }
         }
-        loadTopics()
     }
 
     // =======================================================================
@@ -299,7 +298,25 @@ class MainActivity : AppCompatActivity() {
             }
 
             try {
-                val selectedRegion = regions[binding.regionSpinner.selectedItemPosition]
+                // SAFETY CHECK: Ensure regions list is populated
+                if (regions.isEmpty()) {
+                    Log.w("MainActivity", "Regions list is empty, using fallback")
+                    useFallbackRegions()
+                }
+
+                // SAFETY CHECK: Validate spinner position
+                val spinnerPosition = binding.regionSpinner.selectedItemPosition
+                if (spinnerPosition < 0 || spinnerPosition >= regions.size) {
+                    Log.w(
+                        "MainActivity",
+                        "Invalid spinner position: $spinnerPosition, defaulting to 0"
+                    )
+                    binding.regionSpinner.setSelection(0)
+                    binding.progressBar.visibility = View.GONE
+                    return@launch
+                }
+
+                val selectedRegion = regions[spinnerPosition]
 
                 val regionsToQuery = if (selectedRegion == ALL_REGIONS_DISPLAY_NAME) {
                     awsRegions // Query all AWS regions
@@ -327,12 +344,95 @@ class MainActivity : AppCompatActivity() {
                 topicAdapter.submitListWithBackup(topicItems)
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(this@MainActivity, "Failed to load topics", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this@MainActivity,
+                    "Failed to load topics: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
             } finally {
                 binding.progressBar.visibility = View.GONE
                 binding.swipeRefresh.isRefreshing = false
             }
         }
+    }
+
+    private suspend fun loadAvailableRegions() = withContext(Dispatchers.IO) {
+        try {
+            val app = application as App
+            if (app.snsManager == null && app.hasCredentials()) {
+                app.initSnsManager()
+            }
+
+            val sns = app.snsManager
+            if (sns != null) {
+                val fetchedRegions = sns.fetchAvailableRegions()
+
+                if (fetchedRegions.isNotEmpty()) {
+                    awsRegions.clear()
+                    awsRegions.addAll(fetchedRegions)
+
+                    regions.clear()
+                    regions.add(ALL_REGIONS_DISPLAY_NAME)
+                    regions.addAll(awsRegions)
+
+                    Log.d("MainActivity", "Loaded ${awsRegions.size} regions from AWS")
+                } else {
+                    useFallbackRegions()
+                }
+            } else {
+                useFallbackRegions()
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Failed to load regions", e)
+            useFallbackRegions()
+        }
+    }
+
+    private fun useFallbackRegions() {
+        awsRegions.clear()
+        awsRegions.addAll(
+            listOf(
+                "us-east-1", "us-east-2",
+                "us-west-1", "us-west-2",
+                "ap-south-1", "ap-southeast-1",
+                "ap-southeast-2", "ap-northeast-1",
+                "eu-west-1", "eu-central-1",
+                "sa-east-1"
+            )
+        )
+
+        regions.clear()
+        regions.add(ALL_REGIONS_DISPLAY_NAME)
+        regions.addAll(awsRegions)
+
+        Log.d("MainActivity", "Using fallback regions")
+    }
+
+    private fun setupUI() {
+        if (regions.isEmpty()) {
+            Log.e("MainActivity", "Cannot setup UI - regions list is empty")
+            useFallbackRegions()
+        }
+        val region = UserSession.getCurrentRegion(this)
+        if (region != null && UserSession.getPlatformArnForRegion(this, region).isNullOrEmpty()) {
+            showArnDialogForRegion.value = region
+        }
+
+        setupComposeArnDialogHost()
+        setupRegionSpinner()
+        setupTopicsRecycler()
+        setupTopicControls()
+        setupSearch()
+        loadInitialState()
+        askNotificationPermission()
+        setupFcmTokenButton()
+
+        scope.launch {
+            waitForFcmToken()
+            DeviceRegistrar.autoRegister(this@MainActivity)
+            updateRegistrationStatus()
+        }
+        loadTopics()
     }
 
     // =======================================================================
@@ -347,13 +447,20 @@ class MainActivity : AppCompatActivity() {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         binding.regionSpinner.adapter = adapter
 
-        // If saved region is null, default to ALL_REGIONS_DISPLAY_NAME index (0)
+        // Set initial selection
         val saved = UserSession.getCurrentRegion(this)
-        val idx = if (saved == null) 0 else regions.indexOf(saved)
-        if (idx >= 0) binding.regionSpinner.setSelection(idx) else binding.regionSpinner.setSelection(
-            0
-        )
+        val idx = if (saved == null) {
+            0 // Default to "All Regions"
+        } else {
+            val index = regions.indexOf(saved)
+            if (index >= 0) index else 0
+        }
+        binding.regionSpinner.setSelection(idx)
 
+        Log.d(
+            "MainActivity",
+            "Spinner initialized with ${regions.size} regions, selected index: $idx"
+        )
 
         binding.regionSpinner.onItemSelectedListener =
             object : AdapterView.OnItemSelectedListener {
@@ -363,13 +470,19 @@ class MainActivity : AppCompatActivity() {
                     position: Int,
                     id: Long
                 ) {
+                    if (regions.isEmpty() || position < 0 || position >= regions.size) {
+                        Log.e(
+                            "MainActivity",
+                            "Invalid spinner selection: position=$position, regions.size=${regions.size}"
+                        )
+                        return
+                    }
+
                     val region = regions[position]
+                    Log.d("MainActivity", "Region selected: $region at position $position")
 
                     if (region == ALL_REGIONS_DISPLAY_NAME) {
-                        UserSession.saveCurrentRegion(
-                            this@MainActivity,
-                            region
-                        ) // Clear current region
+                        UserSession.saveCurrentRegion(this@MainActivity, region)
                         loadTopics()
                         return
                     }
@@ -383,14 +496,21 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     scope.launch {
-                        waitForFcmToken()
-                        DeviceRegistrar.autoRegister(this@MainActivity)
-                        updateRegistrationStatus()
-                        loadTopics() // Reload topics for the new region
+                        binding.progressBar.visibility = View.VISIBLE
+                        try {
+                            waitForFcmToken()
+                            DeviceRegistrar.autoRegister(this@MainActivity)
+                            updateRegistrationStatus()
+                            loadTopics()
+                        } finally {
+                            binding.progressBar.visibility = View.GONE
+                        }
                     }
                 }
 
-                override fun onNothingSelected(parent: AdapterView<*>) {}
+                override fun onNothingSelected(parent: AdapterView<*>) {
+                    Log.d("MainActivity", "No region selected")
+                }
             }
     }
 

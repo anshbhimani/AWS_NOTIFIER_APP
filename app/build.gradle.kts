@@ -1,5 +1,4 @@
 import java.util.Properties
-import java.io.File
 
 plugins {
     id("com.android.application")
@@ -160,6 +159,7 @@ dependencies {
     implementation(platform("aws.sdk.kotlin:bom:1.3.99"))
     implementation("aws.sdk.kotlin:sts")
     implementation("aws.sdk.kotlin:sns")
+    implementation("aws.sdk.kotlin:ec2:1.3.95")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
