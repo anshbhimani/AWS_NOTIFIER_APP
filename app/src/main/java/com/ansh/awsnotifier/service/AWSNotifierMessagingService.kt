@@ -142,6 +142,24 @@ class AWSNotifierMessagingService : FirebaseMessagingService() {
         topicArn: String?,
         timestamp: Long
     ) {
+        // 1. Save to Database
+        serviceScope.launch {
+            try {
+                val app = applicationContext as com.ansh.awsnotifier.App
+                val entity = com.ansh.awsnotifier.data.NotificationEntity(
+                    title = title,
+                    message = body,
+                    topic = topicArn ?: "Unknown",
+                    timestamp = timestamp
+                )
+                app.notificationDao.insert(entity)
+                Log.d(TAG, "Notification saved to history: $title")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to save notification history", e)
+            }
+        }
+
+        // 2. Show System Notification
         createNotificationChannel()
 
         val intent = Intent(this, MainActivity::class.java).apply {

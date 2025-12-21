@@ -85,6 +85,8 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        setSupportActionBar(binding.topAppBar)
+
         val app = application as App
         if (!app.hasCredentials()) {
             app.loadCredentialsIfAvailable()
@@ -912,6 +914,25 @@ class MainActivity : AppCompatActivity() {
 
             Log.d("FCM_TOKEN", "Token: ${token ?: "No token yet"}")
             Log.d("ENDPOINT_ARN", "Endpoint ARN: ${endpointArn ?: "Not registered"}")
+        }
+    }
+
+    // =======================================================================
+    // Menu
+    // =======================================================================
+    override fun onCreateOptionsMenu(menu: android.view.Menu?): Boolean {
+        menuInflater.inflate(R.menu.top_app_bar_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: android.view.MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_settings -> {
+                startActivity(Intent(this, SettingsActivity::class.java))
+                true
+            }
+
+            else -> super.onOptionsItemSelected(item)
         }
     }
 }

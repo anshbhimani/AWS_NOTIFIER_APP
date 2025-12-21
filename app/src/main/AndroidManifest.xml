@@ -39,6 +39,12 @@
             android:exported="true"
             android:theme="@style/OneUI" />
 
+        <!-- Settings Activity -->
+        <activity
+            android:name=".ui.SettingsActivity"
+            android:exported="false"
+            android:theme="@style/OneUI" />
+
         <!-- Firebase Messaging Service -->
         <service
             android:name=".service.AWSNotifierMessagingService"

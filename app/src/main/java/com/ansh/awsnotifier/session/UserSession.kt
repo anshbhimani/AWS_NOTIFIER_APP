@@ -240,4 +240,17 @@ object UserSession {
         val map = loadPlatformArnMap(context)
         return map[region]
     }
+
+    // ===========================================================
+    // HISTORY RETENTION POLICY
+    // ===========================================================
+    private const val KEY_RETENTION_DAYS = "history_retention_days"
+
+    fun saveRetentionDays(context: Context, days: Int) {
+        getPrefs(context).edit().putInt(KEY_RETENTION_DAYS, days).apply()
+    }
+
+    fun getRetentionDays(context: Context): Int {
+        return getPrefs(context).getInt(KEY_RETENTION_DAYS, 15) // Default 15 days
+    }
 }

@@ -72,6 +72,9 @@ class App : Application() {
                 }
             }
         }
+
+        // Clean old notifications
+        com.ansh.awsnotifier.data.NotificationCleaner.cleanOldEntries(this)
     }
 
     /**
