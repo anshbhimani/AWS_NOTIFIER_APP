@@ -7,7 +7,6 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.ansh.awsnotifier.App
 import com.ansh.awsnotifier.R
 import com.ansh.awsnotifier.aws.DeviceRegistrar
 import com.ansh.awsnotifier.aws.FirebaseTokenProvider
@@ -21,7 +20,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 
 class AWSNotifierMessagingService : FirebaseMessagingService() {
 
@@ -31,100 +29,98 @@ class AWSNotifierMessagingService : FirebaseMessagingService() {
         private const val CHANNEL_NAME = "AWS Notifications"
     }
 
-    private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    /**
+     * Called when Firebase issues a new FCM token
+     *
+     * IMPORTANT:
+     * - Do NOT do network work directly here
+     * - Just persist state and schedule work
+     */
     override fun onNewToken(token: String) {
-        super.onNewToken(token)
+        Log.d(TAG, "FCM token refreshed")
+
         FirebaseTokenProvider.onTokenRefreshed(token)
         UserSession.saveFcmToken(this, token)
 
-        serviceScope.launch {
-            try {
-                DeviceRegistrar.autoRegister(applicationContext)
-            } catch (e: Exception) {
-                Log.e(TAG, "Background auto-registration failed", e)
-            }
-        }
+        // Mark that backend sync is required
+        UserSession.setTokenRefreshPending(this, true)
 
-        // Retry auto registration up to 5 times
+        // Trigger background registration safely
         serviceScope.launch {
-            repeat(5) {
-                DeviceRegistrar.autoRegister(applicationContext)
-                delay(1500)
-                if (UserSession.getDeviceEndpointArn(applicationContext) != null)
-                    return@launch
-            }
-        }
-
-        if (UserSession.getCredentials(this) != null) {
-            updateEndpointsWithNewToken(token)
-        } else {
-            UserSession.setTokenRefreshPending(this, true)
+            retryAutoRegistration()
         }
     }
 
-    private fun updateEndpointsWithNewToken(token: String) {
-        serviceScope.launch {
+    /**
+     * Retry device registration safely with backoff
+     */
+    private suspend fun retryAutoRegistration() {
+        repeat(5) { attempt ->
             try {
-                val app = applicationContext as App
-                val credentials = UserSession.getCredentials(applicationContext)
+                DeviceRegistrar.autoRegister(applicationContext)
 
-                if (credentials == null || !app.hasCredentials()) {
-                    UserSession.setTokenRefreshPending(applicationContext, true)
-                    return@launch
+                if (UserSession.getDeviceEndpointArn(applicationContext) != null) {
+                    Log.d(TAG, "Device registration successful")
+                    UserSession.setTokenRefreshPending(applicationContext, false)
+                    return
                 }
-
-                val sns = app.snsManager ?: return@launch
-                val endpointArn = UserSession.getDeviceEndpointArn(applicationContext)
-                    ?: return@launch
-
-                sns.updateEndpointToken(endpointArn, token)
-                UserSession.setTokenRefreshPending(applicationContext, false)
-
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to update SNS token", e)
+                Log.w(
+                    TAG,
+                    "Auto registration attempt ${attempt + 1} failed",
+                    e
+                )
             }
+
+            delay(2000L * (attempt + 1)) // exponential-ish backoff
         }
+
+        Log.w(TAG, "Device registration failed after retries")
     }
 
+    /**
+     * Handle incoming SNS → FCM messages
+     */
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
 
-        Log.e("SNS_DEBUG", "FCM RAW PAYLOAD = ${message.data}")
-
+        Log.d(TAG, "FCM RAW PAYLOAD = ${message.data}")
 
         val data = message.data
         var topicArn: String? = null
         var messageText: String? = null
         var subject: String? = null
-        var timestamp: Long = System.currentTimeMillis()
+        val timestamp = System.currentTimeMillis()
 
         // SNS standard payload
         if (data.containsKey("default")) {
             try {
-                val json = JSONObject(data["default"]!!)
+                val json = org.json.JSONObject(data["default"]!!)
                 topicArn = json.optString("TopicArn")
                 messageText = json.optString("Message")
                 subject = json.optString("Subject")
-                timestamp = json.optLong("Timestamp", timestamp)
             } catch (e: Exception) {
-                Log.e(TAG, "Error parsing SNS JSON", e)
+                Log.e(TAG, "Failed to parse SNS JSON", e)
             }
         }
 
-        // fallback extraction
+        // Fallback fields
         topicArn = topicArn
             ?: data["TopicArn"]
                     ?: data["topicArn"]
                     ?: data["topic_arn"]
 
-        val topicName = topicArn?.substringAfterLast(":")
+        val title =
+            topicArn?.substringAfterLast(":")
+                ?: subject
+                ?: "AWS Notification"
 
-        val title = topicName ?: subject ?: "AWS Notification"
-
-        val body = messageText
-            ?: data["message"]
-            ?: "You have a new notification"
+        val body =
+            messageText
+                ?: data["message"]
+                ?: "You have a new notification"
 
         showNotification(title, body, topicArn, timestamp)
     }
@@ -140,7 +136,12 @@ class AWSNotifierMessagingService : FirebaseMessagingService() {
         }
     }
 
-    private fun showNotification(title: String, body: String, topicArn: String?, timestamp: Long) {
+    private fun showNotification(
+        title: String,
+        body: String,
+        topicArn: String?,
+        timestamp: Long
+    ) {
         createNotificationChannel()
 
         val intent = Intent(this, MainActivity::class.java).apply {
@@ -152,14 +153,14 @@ class AWSNotifierMessagingService : FirebaseMessagingService() {
         }
 
         val pendingIntent = PendingIntent.getActivity(
-            this, 0, intent,
+            this,
+            0,
+            intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val icon = getIconForTopic(title)
-
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(icon)
+            .setSmallIcon(getIconForTopic(title))
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
@@ -169,7 +170,7 @@ class AWSNotifierMessagingService : FirebaseMessagingService() {
             .build()
 
         (getSystemService(NOTIFICATION_SERVICE) as NotificationManager)
-            .notify(System.currentTimeMillis().toInt(), notification)
+            .notify(timestamp.toInt(), notification)
     }
 
     private fun createNotificationChannel() {
@@ -179,7 +180,7 @@ class AWSNotifierMessagingService : FirebaseMessagingService() {
                 CHANNEL_NAME,
                 NotificationManager.IMPORTANCE_HIGH
             )
-            (getSystemService(NotificationManager::class.java))
+            getSystemService(NotificationManager::class.java)
                 .createNotificationChannel(channel)
         }
     }

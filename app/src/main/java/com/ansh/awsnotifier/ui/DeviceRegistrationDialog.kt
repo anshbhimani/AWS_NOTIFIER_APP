@@ -1,13 +1,35 @@
 package com.ansh.awsnotifier.ui
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.PhoneAndroid
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -145,7 +167,6 @@ fun DeviceRegistrationDialog(
                             isLoading = true
                             error = null
                             try {
-                                // ✅ FIX: use stored FCM token + createPlatformEndpoint
                                 val fcmToken = UserSession.getFcmToken(ctx)
                                 if (fcmToken == null) {
                                     error = "FCM token not available yet. Please try again in a moment."
@@ -153,18 +174,20 @@ fun DeviceRegistrationDialog(
                                     return@launch
                                 }
 
-                                val endpointArn = app.snsManager?.createPlatformEndpoint(
-                                    platformApplicationArn = UserSession.getPlatformApplicationArn(ctx)
-                                        ?: error("Platform ARN is missing. Configure it in onboarding."),
-                                    deviceToken = fcmToken
+                                // Use DeviceRegistrar for consistent logic
+                                com.ansh.awsnotifier.aws.DeviceRegistrar.registerForRegion(
+                                    ctx,
+                                    region
                                 )
+
+                                val endpointArn = UserSession.getDeviceEndpointArn(ctx)
                                 if (endpointArn.isNullOrEmpty()) {
-                                    error = "Registration failed. Check logs."
+                                    error =
+                                        "Registration failed. Ensure Platform ARN is set for $region."
                                     isLoading = false
                                     return@launch
                                 }
 
-                                UserSession.saveDeviceEndpointArn(ctx, endpointArn)
                                 onSuccess(endpointArn)
                             } catch (e: IllegalArgumentException) {
                                 error = e.message ?: "Invalid configuration"

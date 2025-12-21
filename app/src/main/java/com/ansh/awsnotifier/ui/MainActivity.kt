@@ -32,7 +32,6 @@ import com.ansh.awsnotifier.session.UserSession
 import com.ansh.awsnotifier.ui.adapters.TopicAdapter
 import com.ansh.awsnotifier.ui.dialogs.EnterArnDialog
 import com.ansh.awsnotifier.ui.onboarding.OnboardingActivity
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -60,7 +59,7 @@ class MainActivity : AppCompatActivity() {
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
-    private val fcmTokenDeferred = CompletableDeferred<String>()
+    // removed fcmTokenDeferred
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -576,24 +575,89 @@ class MainActivity : AppCompatActivity() {
             val app = application as App
             val sns = app.snsManager ?: return@launch
 
-            val endpoint = UserSession.getDeviceEndpointArn(this@MainActivity)
-            if (endpoint == null) {
-                Toast.makeText(
-                    this@MainActivity,
-                    "Device not registered yet",
-                    Toast.LENGTH_SHORT
-                ).show()
+            // 1. Determine region from topic
+            val region = try {
+                topicArn.split(":")[3]
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Invalid topic ARN: $topicArn")
+                Toast.makeText(this@MainActivity, "Invalid topic ARN format", Toast.LENGTH_SHORT)
+                    .show()
                 return@launch
             }
 
+            // 2. Check if we need to switch registration
+            var endpoint = UserSession.getDeviceEndpointArn(this@MainActivity)
+            val isRegisteredForRegion = endpoint != null && endpoint.contains(":$region:")
+
+            if (!isRegisteredForRegion) {
+                // We need to register for this region
+                val platformArn = UserSession.getPlatformArnForRegion(this@MainActivity, region)
+
+                if (platformArn.isNullOrEmpty()) {
+                    // Prompt user for Platform ARN
+                    showArnDialogForRegion.value = region
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Please configure Platform ARN for $region to subscribe",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    return@launch
+                }
+
+                binding.progressBar.visibility = View.VISIBLE
+                try {
+                    // Attempt registration
+                    val token = waitForFcmToken()
+                    if (token.isEmpty()) {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "FCM Token not available",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        return@launch
+                    }
+
+                    DeviceRegistrar.registerForRegion(this@MainActivity, region)
+                    endpoint = UserSession.getDeviceEndpointArn(this@MainActivity)
+
+                    if (endpoint == null) {
+                        Toast.makeText(this@MainActivity, "Registration failed", Toast.LENGTH_SHORT)
+                            .show()
+                        return@launch
+                    }
+
+                    // Update the UI registration status since we just changed it
+                    updateRegistrationStatus()
+
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "Auto-registration failed", e)
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Registration error: ${e.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@launch
+                } finally {
+                    binding.progressBar.visibility = View.GONE
+                }
+            }
+
+            // 3. Now subscribe
+            // endpoint is guaranteed to be non-null here
+            val validEndpoint = endpoint!!
+
             try {
-                val subArn = sns.subscribe(topicArn, endpoint)
-                val region = topicArn.split(":")[3]
+                val subArn = sns.subscribe(topicArn, validEndpoint)
                 UserSession.saveSubscription(this@MainActivity, subArn, topicArn, region)
                 loadTopics()
+                Toast.makeText(this@MainActivity, "Subscribed!", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(this@MainActivity, "Subscribe failed", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this@MainActivity,
+                    "Subscribe failed: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
     }
@@ -831,9 +895,14 @@ class MainActivity : AppCompatActivity() {
     // FCM Token & Registration
     // =======================================================================
     private suspend fun waitForFcmToken(): String {
-        val fromPrefs = UserSession.getFcmToken(this)
-        if (fromPrefs != null) return fromPrefs
-        return fcmTokenDeferred.await()
+        return try {
+            val token = com.ansh.awsnotifier.aws.FirebaseTokenProvider.getToken()
+            UserSession.saveFcmToken(this, token)
+            token
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Failed to get FCM token", e)
+            ""
+        }
     }
 
     private fun updateRegistrationStatus() {

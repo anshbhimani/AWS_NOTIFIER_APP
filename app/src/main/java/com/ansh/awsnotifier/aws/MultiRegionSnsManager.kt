@@ -69,7 +69,12 @@ class MultiRegionSnsManager(
         deviceToken: String
     ): String = withContext(Dispatchers.IO) {
 
-        val region = platformApplicationArn.split(":")[3]
+        val parts = platformApplicationArn.split(":")
+        if (parts.size < 4) {
+            throw IllegalArgumentException("Invalid Platform ARN format (missing region): $platformApplicationArn")
+        }
+        val region = parts[3]
+        
         getClientForRegion(region).use { sns ->
             val response = sns.createPlatformEndpoint(
                 CreatePlatformEndpointRequest {

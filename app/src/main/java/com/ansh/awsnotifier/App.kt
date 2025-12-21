@@ -9,7 +9,13 @@ import com.ansh.awsnotifier.aws.MultiRegionSnsManager
 import com.ansh.awsnotifier.data.NotificationDao
 import com.ansh.awsnotifier.data.NotificationDatabase
 import com.ansh.awsnotifier.session.UserSession
-import kotlinx.coroutines.*
+import com.google.firebase.FirebaseApp
+import com.google.firebase.messaging.FirebaseMessaging
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 class App : Application() {
 
@@ -42,7 +48,11 @@ class App : Application() {
         super.onCreate()
         Log.d(TAG, "App starting")
 
-        Log.d(TAG,"Now loading Credentials ...")
+        // Initialize Firebase first with detailed logging
+        initializeFirebase()
+
+        Log.d(TAG, "Now loading Credentials ...")
+
         // Load any saved credentials
         loadCredentialsIfAvailable()
 
@@ -61,6 +71,105 @@ class App : Application() {
                     Log.e(TAG, "Auto-registration failed", e)
                 }
             }
+        }
+    }
+
+    /**
+     * Initialize Firebase with detailed error logging
+     */
+    private fun initializeFirebase() {
+        try {
+            Log.d(TAG, "Initializing Firebase...")
+
+            // Initialize Firebase
+            val firebaseApp = FirebaseApp.initializeApp(this)
+
+            if (firebaseApp != null) {
+                Log.d(TAG, "✓ Firebase initialized successfully")
+                Log.d(TAG, "  App Name: ${firebaseApp.name}")
+                Log.d(TAG, "  Project ID: ${firebaseApp.options.projectId}")
+                Log.d(TAG, "  Application ID: ${firebaseApp.options.applicationId}")
+                Log.d(TAG, "  API Key: ${firebaseApp.options.apiKey.take(20)}...")
+
+                // Enable FCM auto-initialization
+                FirebaseMessaging.getInstance().isAutoInitEnabled = true
+                Log.d(TAG, "✓ FCM auto-init enabled")
+
+                // Attempt to retrieve token immediately
+                FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        val token = task.result
+                        Log.d(TAG, "✓✓✓ FCM Token retrieved successfully!")
+                        Log.d(TAG, "Token (first 50 chars): ${token.take(50)}...")
+                        Log.d(TAG, "Token length: ${token.length}")
+
+                        // Save it immediately
+                        UserSession.saveFcmToken(this, token)
+                        Log.d(TAG, "Token saved to UserSession")
+
+                    } else {
+                        Log.e(TAG, "✗✗✗ Failed to retrieve FCM token", task.exception)
+
+                        task.exception?.let { e ->
+                            Log.e(TAG, "════════════════════════════════════")
+                            Log.e(TAG, "FCM TOKEN ERROR DETAILS:")
+                            Log.e(TAG, "════════════════════════════════════")
+                            Log.e(TAG, "Exception Type: ${e.javaClass.simpleName}")
+                            Log.e(TAG, "Exception Message: ${e.message}")
+                            Log.e(TAG, "Exception Cause: ${e.cause?.message ?: "None"}")
+
+                            // Print full stack trace
+                            e.printStackTrace()
+
+                            // Specific error guidance
+                            when {
+                                e.message?.contains("FIS_AUTH_ERROR") == true -> {
+                                    Log.e(TAG, "")
+                                    Log.e(TAG, "⚠️ FIS_AUTH_ERROR DETECTED")
+                                    Log.e(TAG, "════════════════════════════════════")
+                                    Log.e(TAG, "Possible causes:")
+                                    Log.e(
+                                        TAG,
+                                        "1. Firebase APIs not enabled in Google Cloud Console"
+                                    )
+                                    Log.e(TAG, "   - Firebase Cloud Messaging API")
+                                    Log.e(TAG, "   - Firebase Installations API")
+                                    Log.e(TAG, "2. google-services.json doesn't match package name")
+                                    Log.e(TAG, "3. Firebase project has billing/quota issues")
+                                    Log.e(TAG, "4. App needs to be re-added to Firebase project")
+                                    Log.e(TAG, "════════════════════════════════════")
+                                }
+
+                                e.message?.contains("SERVICE_NOT_AVAILABLE") == true -> {
+                                    Log.e(TAG, "")
+                                    Log.e(TAG, "⚠️ SERVICE_NOT_AVAILABLE")
+                                    Log.e(TAG, "Google Play Services is not available or outdated")
+                                }
+
+                                e.message?.contains("INTERNAL") == true -> {
+                                    Log.e(TAG, "")
+                                    Log.e(TAG, "⚠️ INTERNAL ERROR")
+                                    Log.e(TAG, "This may be a temporary Firebase service issue")
+                                }
+
+                                e.message?.contains("TIMEOUT") == true -> {
+                                    Log.e(TAG, "")
+                                    Log.e(TAG, "⚠️ TIMEOUT ERROR")
+                                    Log.e(TAG, "Network connectivity issue")
+                                }
+                            }
+                            Log.e(TAG, "════════════════════════════════════")
+                        }
+                    }
+                }
+
+            } else {
+                Log.e(TAG, "✗ FirebaseApp is null after initialization")
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "✗ Failed to initialize Firebase", e)
+            e.printStackTrace()
         }
     }
 
@@ -84,7 +193,6 @@ class App : Application() {
         }
 
         val (accessKey, secretKey) = creds
-
         val provider = StaticCredentialsProvider(
             Credentials(
                 accessKeyId = accessKey,
