@@ -1,30 +1,28 @@
 package com.ansh.awsnotifier.ui.onboarding
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun CredentialInputScreen(
     accessKey: String,
     secretKey: String,
-    selectedRegion: String,
-    platformArn: String,
-    regions: List<String>,
     onAccessChange: (String) -> Unit,
-    onSecretChange: (String) -> Unit,
-    onRegionChange: (String) -> Unit,
-    onPlatformArnChange: (String) -> Unit,
-    onContinue: () -> Unit
+    onSecretChange: (String) -> Unit
 ) {
     Column(
         Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
             .padding(24.dp),
         verticalArrangement = Arrangement.Center
     ) {
@@ -32,83 +30,33 @@ fun CredentialInputScreen(
         Text("AWS Setup", style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(16.dp))
 
-        // --- ACCESS KEY ---
         OutlinedTextField(
             value = accessKey,
             onValueChange = onAccessChange,
             label = { Text("AWS Access Key ID") },
+            singleLine = true,
+            isError = accessKey.isNotEmpty() && !accessKey.matches(Regex("^AKIA[0-9A-Z]{16}$")),
             modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(Modifier.height(16.dp))
 
-        // --- SECRET KEY ---
         OutlinedTextField(
             value = secretKey,
             onValueChange = onSecretChange,
             label = { Text("AWS Secret Access Key") },
-            visualTransformation = PasswordVisualTransformation(),
+            singleLine = true,
+            isError = secretKey.isNotEmpty() && secretKey.length < 40,
             modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(Modifier.height(24.dp))
-
-        // --- REGION DROPDOWN ---
-        Text("Select Region", style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
 
-        var expanded by remember { mutableStateOf(false) }
-
-        Box {
-            OutlinedTextField(
-                value = selectedRegion,
-                onValueChange = {},
-                modifier = Modifier.fillMaxWidth(),
-                readOnly = true,
-                label = { Text("Region") },
-                trailingIcon = {
-                    IconButton(onClick = { expanded = true }) {
-                        Icon(Icons.Default.ArrowDropDown, contentDescription = null)
-                    }
-                }
-            )
-
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                regions.forEach { region ->
-                    DropdownMenuItem(
-                        text = { Text(region) },
-                        onClick = {
-                            onRegionChange(region)
-                            expanded = false
-                        }
-                    )
-                }
-            }
-        }
-
-        Spacer(Modifier.height(24.dp))
-
-        // --- PLATFORM ARN ---
-        OutlinedTextField(
-            value = platformArn,
-            onValueChange = onPlatformArnChange,
-            label = { Text("Platform Application ARN for $selectedRegion") },
-            modifier = Modifier.fillMaxWidth()
+        Text(
+            text = "Credentials are stored securely on this device only.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-
-        Spacer(Modifier.height(24.dp))
-
-        Button(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = onContinue
-        ) {
-            Text("Continue")
-        }
-
-        Spacer(Modifier.height(16.dp))
 
         Text(
             "Warning: Use IAM credentials with restricted permissions.",

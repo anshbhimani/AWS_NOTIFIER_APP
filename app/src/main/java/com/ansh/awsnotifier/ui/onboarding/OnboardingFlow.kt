@@ -1,46 +1,34 @@
 package com.ansh.awsnotifier.ui.onboarding
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.ansh.awsnotifier.ui.onboarding.pages.WelcomePage
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun OnboardingFlow(
-    onFinish: (accessKey: String, secretKey: String, region: String, platformArn: String) -> Unit
+    onFinish: (accessKey: String, secretKey: String) -> Unit
 ) {
-    val pages = remember {
-        listOf(
-            "welcome",
-            "iam_setup",
-            "policy",
-            "credentials"
-        )
-    }
-
+    val pages = listOf("welcome", "iam", "credentials")
     val pager = rememberPagerState(pageCount = { pages.size })
     val scope = rememberCoroutineScope()
 
     var accessKey by remember { mutableStateOf("") }
     var secretKey by remember { mutableStateOf("") }
-
-    // NEW STATE FOR REGION + ARN
-    val regions = listOf(
-        "us-east-1", "us-east-2",
-        "us-west-1", "us-west-2",
-        "ap-south-1", "ap-southeast-1",
-        "ap-southeast-2", "ap-northeast-1",
-        "eu-west-1", "eu-central-1",
-        "sa-east-1"
-    )
-
-    var selectedRegion by remember { mutableStateOf(regions.first()) }
-    var platformArn by remember { mutableStateOf("") }
 
     Scaffold(
         bottomBar = {
@@ -51,7 +39,7 @@ fun OnboardingFlow(
                     if (pager.currentPage < pages.lastIndex) {
                         scope.launch { pager.animateScrollToPage(pager.currentPage + 1) }
                     } else {
-                        onFinish(accessKey, secretKey, selectedRegion, platformArn)
+                        onFinish(accessKey.trim(), secretKey.trim())
                     }
                 },
                 onBack = {
@@ -61,38 +49,28 @@ fun OnboardingFlow(
                 }
             )
         }
-    ) { innerPadding ->
-
-        HorizontalPager(
+    ) { padding ->
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
-            state = pager
-        ) { page ->
-
-            when (pages[page]) {
-                "welcome" -> WelcomeScreen()
-                "iam_setup" -> IAMSetupGuideScreen()
-                "policy" -> IAMPolicyScreen()
-
-                "credentials" -> CredentialInputScreen(
-                    accessKey = accessKey,
-                    secretKey = secretKey,
-
-                    selectedRegion = selectedRegion,
-                    platformArn = platformArn,
-                    regions = regions,
-
-                    onAccessChange = { accessKey = it },
-                    onSecretChange = { secretKey = it },
-
-                    onRegionChange = { selectedRegion = it },
-                    onPlatformArnChange = { platformArn = it },
-                    onContinue = {
-                        onFinish(accessKey, secretKey, selectedRegion, platformArn)
-                    }
-
-                )
+                .padding(padding)
+        ) {
+            HorizontalPager(
+                state = pager,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) { page ->
+                when (pages[page]) {
+                    "welcome" -> WelcomePage()
+                    "iam" -> IAMSetupGuideScreen()
+                    "credentials" -> CredentialInputScreen(
+                        accessKey = accessKey,
+                        secretKey = secretKey,
+                        onAccessChange = { accessKey = it },
+                        onSecretChange = { secretKey = it }
+                    )
+                }
             }
         }
     }

@@ -24,13 +24,15 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import com.ansh.awsnotifier.App
 import com.ansh.awsnotifier.data.NotificationEntity
 import com.ansh.awsnotifier.session.UserSession
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -56,22 +59,23 @@ fun NotificationHistoryScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // State
-    val notificationsFlow = remember { app.notificationDao.getAll() }
-    val notifications by notificationsFlow.collectAsState(initial = emptyList())
+    val notifications by remember {
+        app.notificationDao.getAll()
+    }.collectAsState(initial = emptyList())
 
-    var showFilterDialog by remember { mutableStateOf(false) }
+    var showFilterSheet by remember { mutableStateOf(false) }
     var selectedTopicFilter by remember { mutableStateOf<String?>(null) }
     var showClearDialog by remember { mutableStateOf(false) }
 
     val retentionDays = remember { UserSession.getRetentionDays(context) }
 
     val filteredNotifications = remember(notifications, selectedTopicFilter) {
-        if (selectedTopicFilter == null) {
-            notifications
-        } else {
-            notifications.filter { it.topic.contains(selectedTopicFilter ?: "", ignoreCase = true) }
-        }
+        selectedTopicFilter?.let { filter ->
+            notifications.filter {
+                it.topic.substringAfterLast(":")
+                    .contains(filter, ignoreCase = true)
+            }
+        } ?: notifications
     }
 
     Scaffold(
@@ -80,21 +84,17 @@ fun NotificationHistoryScreen(
                 title = { Text("Notification History") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showFilterDialog = true }) {
-                        Icon(Icons.Default.FilterList, contentDescription = "Filter")
+                    IconButton(onClick = { showFilterSheet = true }) {
+                        Icon(Icons.Default.FilterList, null)
                     }
                     IconButton(onClick = { showClearDialog = true }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Clear All")
+                        Icon(Icons.Default.Delete, null)
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                )
+                }
             )
         }
     ) { padding ->
@@ -103,16 +103,15 @@ fun NotificationHistoryScreen(
                 .padding(padding)
                 .fillMaxSize()
         ) {
-            // Retention Policy Banner
+
             Surface(
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
                     text = "Auto-deleting notifications older than $retentionDays days",
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
 
@@ -121,69 +120,37 @@ fun NotificationHistoryScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "No notifications found",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Text("No notifications found")
                 }
             } else {
                 LazyColumn(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(filteredNotifications) { notification ->
-                        NotificationItemCard(notification)
+                    items(filteredNotifications) {
+                        NotificationItemCard(it)
                     }
                 }
             }
         }
     }
 
-    // Filter Dialog
-    if (showFilterDialog) {
-        val topics = notifications.map { it.topic }.distinct().sorted()
-
-        AlertDialog(
-            onDismissRequest = { showFilterDialog = false },
-            title = { Text("Filter by Topic") },
-            text = {
-                Column {
-                    TextButton(
-                        onClick = {
-                            selectedTopicFilter = null
-                            showFilterDialog = false
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("All Topics")
-                    }
-                    topics.forEach { topic ->
-                        val topicName = topic.substringAfterLast(":")
-                        TextButton(
-                            onClick = {
-                                selectedTopicFilter = topicName
-                                showFilterDialog = false
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(topicName)
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showFilterDialog = false }) { Text("Close") }
-            }
+    // 🔍 Filter Bottom Sheet
+    if (showFilterSheet) {
+        TopicFilterBottomSheet(
+            topics = notifications.map { it.topic },
+            selected = selectedTopicFilter,
+            onSelect = { selectedTopicFilter = it },
+            onDismiss = { showFilterSheet = false }
         )
     }
 
-    // Clear All Dialog
+    // ❌ Clear Dialog
     if (showClearDialog) {
         AlertDialog(
             onDismissRequest = { showClearDialog = false },
             title = { Text("Clear All History") },
-            text = { Text("Are you sure you want to delete all saved notifications? This cannot be undone.") },
+            text = { Text("Delete all saved notifications? This cannot be undone.") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -197,58 +164,166 @@ fun NotificationHistoryScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showClearDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showClearDialog = false }) {
+                    Text("Cancel")
+                }
             }
         )
     }
 }
+
+/* -------------------- FILTER BOTTOM SHEET -------------------- */
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TopicFilterBottomSheet(
+    topics: List<String>,
+    selected: String?,
+    onSelect: (String?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var query by remember { mutableStateOf("") }
+    var debouncedQuery by remember { mutableStateOf("") }
+
+    // ⏳ Debounce (300ms)
+    LaunchedEffect(query) {
+        delay(300)
+        debouncedQuery = query
+    }
+
+    val filteredTopics = remember(debouncedQuery, topics) {
+        topics
+            .map { it.substringAfterLast(":") }
+            .distinct()
+            .filter {
+                it.contains(debouncedQuery, ignoreCase = true)
+            }
+            .sorted()
+    }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+
+            Text(
+                text = "Filter by Topic",
+                style = MaterialTheme.typography.titleLarge
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            TextField(
+                modifier = Modifier.fillMaxWidth(),
+                value = query,
+                onValueChange = { query = it },
+                placeholder = { Text("Search topics…") },
+                singleLine = true,
+                leadingIcon = {
+                    Icon(Icons.Default.FilterList, null)
+                }
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            LazyColumn {
+                item {
+                    FilterRow(
+                        text = "All Topics",
+                        selected = selected == null
+                    ) {
+                        onSelect(null)
+                        onDismiss()
+                    }
+                }
+
+                items(filteredTopics) { topic ->
+                    FilterRow(
+                        text = topic,
+                        selected = selected == topic
+                    ) {
+                        onSelect(topic)
+                        onDismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* -------------------- FILTER ROW -------------------- */
+
+@Composable
+fun FilterRow(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        color = if (selected)
+            MaterialTheme.colorScheme.primaryContainer
+        else
+            MaterialTheme.colorScheme.surface,
+        shape = MaterialTheme.shapes.medium,
+        onClick = onClick
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(16.dp),
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (selected)
+                MaterialTheme.colorScheme.onPrimaryContainer
+            else
+                MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+/* -------------------- NOTIFICATION CARD -------------------- */
 
 @Composable
 fun NotificationItemCard(notification: NotificationEntity) {
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        )
     ) {
         Column(
             modifier = Modifier
                 .padding(16.dp)
                 .fillMaxWidth()
         ) {
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
                     text = notification.title,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    fontWeight = FontWeight.Bold
                 )
 
-                val timeAgo = DateUtils.getRelativeTimeSpanString(
-                    notification.timestamp,
-                    System.currentTimeMillis(),
-                    DateUtils.MINUTE_IN_MILLIS
-                )
                 Text(
-                    text = timeAgo.toString(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    text = DateUtils.getRelativeTimeSpanString(
+                        notification.timestamp,
+                        System.currentTimeMillis(),
+                        DateUtils.MINUTE_IN_MILLIS
+                    ).toString(),
+                    style = MaterialTheme.typography.labelSmall
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(Modifier.height(8.dp))
 
-            Text(
-                text = notification.message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Text(notification.message)
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(Modifier.height(8.dp))
 
             Text(
                 text = "Topic: ${notification.topic.substringAfterLast(":")}",
