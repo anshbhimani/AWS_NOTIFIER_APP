@@ -165,7 +165,59 @@ sns:SetEndpointAttributes
 4. Launch the app and complete onboarding  
 
 ---
+## Why This App Exists
 
+AWS Budget alerts are critical for monitoring costs, but the default notification options (email, SMS) have limitations:
+
+- **Email:** Slow and easy to miss.  
+- **SMS:** Paid service.  
+- **SNS:** Free, AWS-native, but not directly mobile-friendly.  
+
+This app fills the gap by bridging **AWS SNS → Android push notifications via FCM**.
+
+---
+
+## Design Decisions
+
+### 1. AWS Credentials in the App
+- Users provide their **own AWS Access Key and Secret Key**.  
+- No backend or sign-up required, allowing **independent use**.  
+- ⚠️ **Security:** Create IAM users with **minimal SNS permissions** for safety.
+
+### 2. Android-only Platform
+- Targeting Android ensures **immediate mobile notifications**.  
+- Focused on personal use for simplicity and reliability.
+
+### 3. Firebase Cloud Messaging (FCM)
+- FCM is used to **deliver push notifications** reliably on Android.  
+- Handles token management, registration, and delivery without extra complexity.
+
+### 4. Per-topic Subscriptions
+- Users **choose which topics to subscribe to**, avoiding notification overload.  
+- Supports multiple use cases: budgets, development, or other alerts.
+
+### 5. Multi-region Support
+- AWS SNS topics are **region-scoped**, and the app supports multiple regions.  
+- Enables users to monitor alerts across different projects and locations.
+
+### 6. Full SNS Management
+- Users can **list, create, delete, and subscribe to topics** directly in the app.  
+- Adds convenience and eliminates the need to use AWS Console.
+
+### 7. Independent, Self-contained
+- No backend or SMS costs required.  
+- Works like a **mobile AWS SNS client**, giving users **full control** over notifications.
+
+---
+
+## Use Case Example
+
+**AWS Budget Alerts:**  
+- Set thresholds in AWS Budgets.  
+- When a threshold is exceeded, AWS publishes a notification to an SNS topic.  
+- This app subscribes to that topic and **delivers a push notification to your Android device instantly**.
+
+---
 
 🚧 Status
 
@@ -174,4 +226,9 @@ sns:SetEndpointAttributes
 📈 Actively improving
 
 🧩 More AWS integrations planned
+
+## 🤝 Contributing
+- Fork the repo
+- Create a new branch
+- Submit pull requests
 **
