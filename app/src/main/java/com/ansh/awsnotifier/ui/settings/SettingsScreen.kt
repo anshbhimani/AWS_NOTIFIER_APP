@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
@@ -31,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -81,6 +83,8 @@ fun SettingsScreen(
     var showLogoutDialog by remember { mutableStateOf(false) }
     var retentionDays by remember { mutableStateOf(UserSession.getRetentionDays(context)) }
     var showRetentionDialog by remember { mutableStateOf(false) }
+
+    var biometricEnabled by remember { mutableStateOf(UserSession.isBiometricEnabled(context)) }
 
     LaunchedEffect(Unit) {
         // Load basic info
@@ -173,6 +177,47 @@ fun SettingsScreen(
 
             // Security
             SettingsSectionTitle("Security")
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        val newState = !biometricEnabled
+                        biometricEnabled = newState
+                        UserSession.setBiometricEnabled(context, newState)
+                    }
+                    .padding(vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "App Lock",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Require authentication on startup",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = biometricEnabled,
+                    onCheckedChange = {
+                        biometricEnabled = it
+                        UserSession.setBiometricEnabled(context, it)
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedButton(
                 onClick = { showLogoutDialog = true },

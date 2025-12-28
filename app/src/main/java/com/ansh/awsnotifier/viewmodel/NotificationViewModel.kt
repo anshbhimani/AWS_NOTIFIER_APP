@@ -2,11 +2,13 @@ package com.ansh.awsnotifier.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
-import com.ansh.awsnotifier.data.NotificationDao
+import com.ansh.awsnotifier.data.NotificationRepository
 
 class NotificationViewModel(
-    private val dao: NotificationDao
+    private val repository: NotificationRepository
 ) : ViewModel() {
 
-    val allNotifications = dao.getAll().asLiveData()
+    val allNotifications = repository.getAll().asLiveData()
+
+    fun search(query: String) = repository.search(query).asLiveData()
 }

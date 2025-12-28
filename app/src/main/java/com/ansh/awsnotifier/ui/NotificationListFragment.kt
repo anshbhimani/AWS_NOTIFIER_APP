@@ -34,7 +34,7 @@ class NotificationListFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val app = requireActivity().application as App
-        val factory = NotificationViewModelFactory(app.notificationDao)
+        val factory = NotificationViewModelFactory(app.notificationRepository)
         viewModel = ViewModelProvider(this, factory)[NotificationViewModel::class.java]
 
         setupRecyclerView()

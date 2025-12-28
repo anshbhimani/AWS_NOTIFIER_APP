@@ -27,6 +27,9 @@ class App : Application() {
     val notificationDao: NotificationDao
         get() = NotificationDatabase.getDatabase(this).notificationDao()
 
+    val notificationRepository: com.ansh.awsnotifier.data.NotificationRepository
+        get() = com.ansh.awsnotifier.data.NotificationRepository(notificationDao)
+
     // AWS credentials
     var awsCredentialsProvider: CredentialsProvider? = null
         private set

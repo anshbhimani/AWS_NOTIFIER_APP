@@ -72,6 +72,20 @@ object UserSession {
     }
 
     // =====================================
+    // BIOMETRIC SECURITY
+    // =====================================
+
+    private const val KEY_BIOMETRIC_ENABLED = "biometric_enabled"
+
+    fun isBiometricEnabled(context: Context): Boolean {
+        return getPrefs(context).getBoolean(KEY_BIOMETRIC_ENABLED, false)
+    }
+
+    fun setBiometricEnabled(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_BIOMETRIC_ENABLED, enabled).apply()
+    }
+
+    // =====================================
     // AWS CREDENTIALS
     // =====================================
 

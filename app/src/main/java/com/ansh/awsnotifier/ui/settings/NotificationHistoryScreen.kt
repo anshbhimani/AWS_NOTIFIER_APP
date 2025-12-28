@@ -60,7 +60,7 @@ fun NotificationHistoryScreen(
     val scope = rememberCoroutineScope()
 
     val notifications by remember {
-        app.notificationDao.getAll()
+        app.notificationRepository.getAll()
     }.collectAsState(initial = emptyList())
 
     var showFilterSheet by remember { mutableStateOf(false) }
@@ -155,7 +155,7 @@ fun NotificationHistoryScreen(
                 TextButton(
                     onClick = {
                         scope.launch {
-                            app.notificationDao.clearAll()
+                            app.notificationRepository.clearAll()
                             showClearDialog = false
                         }
                     }

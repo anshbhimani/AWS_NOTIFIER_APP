@@ -12,6 +12,8 @@ class SplashActivity : AppCompatActivity() {
 
         val intent = if (!UserSession.isOnboardingComplete(this)) {
             Intent(this, com.ansh.awsnotifier.ui.onboarding.OnboardingActivity::class.java)
+        } else if (UserSession.isBiometricEnabled(this)) {
+            Intent(this, BiometricAuthActivity::class.java)
         } else {
             Intent(this, MainActivity::class.java)
         }

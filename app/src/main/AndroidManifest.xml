@@ -33,6 +33,12 @@
             android:exported="false"
             android:theme="@style/OneUI" />
 
+        <!-- Biometric Auth Activity -->
+        <activity
+            android:name=".ui.BiometricAuthActivity"
+            android:exported="false"
+            android:theme="@style/OneUI" />
+
         <!-- Main Activity -->
         <activity
             android:name=".ui.MainActivity"

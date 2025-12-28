@@ -152,7 +152,7 @@ class AWSNotifierMessagingService : FirebaseMessagingService() {
                     topic = topicArn ?: "Unknown",
                     timestamp = timestamp
                 )
-                app.notificationDao.insert(entity)
+                app.notificationRepository.insert(entity)
                 Log.d(TAG, "Notification saved to history: $title")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to save notification history", e)

@@ -14,8 +14,8 @@ object NotificationCleaner {
         val cutoffTime = System.currentTimeMillis() - (retentionDays * MILLIS_IN_DAY)
 
         CoroutineScope(Dispatchers.IO).launch {
-            val db = NotificationDatabase.getDatabase(context)
-            db.notificationDao().deleteOlderThan(cutoffTime)
+            val app = context.applicationContext as com.ansh.awsnotifier.App
+            app.notificationRepository.deleteOlderThan(cutoffTime)
         }
     }
 }
