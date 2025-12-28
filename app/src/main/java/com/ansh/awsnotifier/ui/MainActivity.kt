@@ -415,7 +415,11 @@ class MainActivity : AppCompatActivity() {
             useFallbackRegions()
         }
         val region = UserSession.getCurrentRegion(this)
-        if (region != null && UserSession.getPlatformArnForRegion(this, region).isNullOrEmpty()) {
+        if (region != null && region != ALL_REGIONS_DISPLAY_NAME && UserSession.getPlatformArnForRegion(
+                this,
+                region
+            ).isNullOrEmpty()
+        ) {
             showArnDialogForRegion.value = region
         }
 
