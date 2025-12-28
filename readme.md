@@ -1,85 +1,234 @@
-# AWS Notifier Android App
+# 🚀 AWS Notifier — Android App
 
-An Android application for managing AWS Simple Notification Service (SNS) topics and subscriptions. This app allows you to connect to your AWS account, manage topics, and subscribe your device to receive push notifications.
+**AWS Notifier** is an Android application designed for **developers and DevOps engineers** to manage **AWS SNS topics** and receive **real-time system or cost alerts** directly on their mobile devices.
 
-## Features
+It provides a secure, mobile-first way to manage SNS topics, subscriptions, and notifications across multiple AWS regions.
 
--   **AWS Integration**: Securely connect to your AWS account using IAM credentials.
--   **Multi-Region Support**: Switch between different AWS regions seamlessly.
--   **Topic Management**:
-    -   List all available SNS topics in a selected region.
-    -   Create new SNS topics.
-    -   Delete existing topics directly from the app.
--   **Subscription Management**:
-    -   Subscribe your device to any topic to receive push notifications.
-    -   Unsubscribe from topics to stop receiving notifications.
--   **Push Notifications**: Leverages Firebase Cloud Messaging (FCM) to receive notifications from subscribed topics.
--   **Local Persistence**: Remembers your credentials, region, and subscription state.
--   **Search**: Easily find topics by name.
+---
 
-## How It Works
+## ✨ Key Features
 
-1.  **Onboarding**: The first time you launch the app, you'll go through an onboarding process where you need to provide your AWS IAM Access Key and Secret Key. These keys must belong to a user with sufficient permissions to manage SNS.
-2.  **Region & Platform ARN**: Select the AWS region you want to work in. The app requires a Platform Application ARN (created in AWS SNS for your Firebase project) to register for push notifications. You will be prompted to enter this ARN for the selected region.
-3.  **Device Registration**: The app automatically retrieves an FCM token and registers itself with AWS SNS. This creates a platform endpoint for your device.
-4.  **Topic Management**: Once set up, the main screen will display a list of your SNS topics in the selected region. You can refresh this list, create new topics, or delete them.
-5.  **Subscribing**: Simply tap the "Subscribe" button on a topic to start receiving notifications. You can unsubscribe at any time.
+- **Multi-Region Support**  
+  Manage SNS topics across all major AWS regions (US, EU, AP, SA).
 
-## Screenshots
+- **Topic Management**  
+  Create, delete, refresh, and list SNS topics directly from your phone.
 
-** Notification Screenshot **
-![1000085126](https://github.com/user-attachments/assets/ca32972c-9644-4325-a3b3-fd65338c966c)
+- **Subscription Control**  
+  One-tap subscribe or unsubscribe your device to specific SNS topics.
 
-| Onboarding Screen                               | Main Screen (Topic List)                          | Create Topic Dialog                             |
-| ----------------------------------------------- | ------------------------------------------------- | ----------------------------------------------- |
-| ![Onboarding](<path_to_onboarding_screenshot.png>) | ![Main Screen](<path_to_main_screen_screenshot.png>) | ![Create Topic](<path_to_dialog_screenshot.png>) |
+- **Real-time Push Notifications**  
+  Instant alerts delivered via **Firebase Cloud Messaging (FCM)**.
 
-## Setup & Configuration
+- **Secure Credential Storage**  
+  AWS Access Key and Secret Key are stored using `EncryptedSharedPreferences`.
+
+- **Notification History**  
+  Local storage of received alerts with automatic retention and cleanup.
+
+- **Search & Filtering**  
+  Quickly find SNS topics by name.
+
+---
+
+## 📱 Screenshots
+
+### 🚀 Onboarding & AWS Setup
+Secure onboarding flow with IAM best practices and guided AWS credential setup.
+
+<p float="left">
+  <img src="https://github.com/user-attachments/assets/058cd774-4650-4297-8834-b50e0645609f" width="250"/>
+  <img src="https://github.com/user-attachments/assets/aae275cf-297e-4f69-a0c5-142b6976e8f2" width="250"/>
+  <img src="https://github.com/user-attachments/assets/e09036d9-f952-4c31-b577-1b89b374da3f" width="250"/>
+  <img src="https://github.com/user-attachments/assets/f3ff96d5-7cf3-4065-9666-2a36da11a5c7" width="250"/>
+  <img src="https://github.com/user-attachments/assets/1570c81b-6093-4c4b-b4d4-80bda95be43d" width="250"/>
+  <img src="https://github.com/user-attachments/assets/de78a7d3-3a70-4e08-8efc-00425e1c9ca7" width="250"/>
+</p>
+
+---
+
+### 📊 Dashboard & SNS Topics
+Manage SNS topics across regions with real-time subscription control.
+
+<p float="left">
+  <img src="https://github.com/user-attachments/assets/023e36af-9a86-4772-af9f-01bcc917be1a" width="250"/>
+  <img src="https://github.com/user-attachments/assets/5ef3f234-7eb1-468f-9cba-64021d4c5070" width="250"/>
+</p>
+
+---
+
+### 🔔 Notification History
+View received alerts with automatic cleanup based on retention policy.
+
+<p float="left">
+  <img src="https://github.com/user-attachments/assets/ed5c6560-7e80-4f05-a38f-8e36ddf79fc1" width="250"/>
+</p>
+
+---
+
+### ⚙️ Settings & Security
+Manage AWS account details, notification retention, and securely reset credentials.
+
+<p float="left">
+  <img src="https://github.com/user-attachments/assets/8708d9ae-3fa0-46f5-aa1a-398d57dbb9f0" width="250"/>
+</p>
+
+---
+
+## 🧠 How It Works
+
+1. **Onboarding**  
+   Complete a guided onboarding flow and provide AWS IAM credentials with SNS permissions.
+
+2. **Region & Platform Application ARN**  
+   Select an AWS region and provide the SNS **Platform Application ARN** associated with your Firebase project.
+
+3. **Device Registration**  
+   The app retrieves an FCM token and creates an SNS platform endpoint for your device.
+
+4. **Topic Management**  
+   View, create, refresh, or delete SNS topics in the selected region.
+
+5. **Subscriptions**  
+   Subscribe to any topic with a single tap to start receiving push notifications instantly.
+
+6. **Notification History**  
+   Alerts are stored locally and automatically cleaned up based on retention settings.
+
+---
+
+## 🛠 Tech Stack
+
+- **Language:** Kotlin  
+- **UI:** Jetpack Compose (Onboarding), ViewBinding (Dashboard)  
+- **Architecture:** MVVM  
+- **AWS SDK:** AWS SDK for Kotlin (SNS, STS, EC2)  
+- **Push Notifications:** Firebase Cloud Messaging (FCM)  
+- **Database:** Room  
+- **Security:** EncryptedSharedPreferences  
+
+---
+
+## 🔐 Setup & Configuration
 
 ### Prerequisites
 
--   An AWS account.
--   A Firebase project linked to the Android app.
+- An AWS account  
+- A Firebase project linked to the Android app  
 
-### Configuration Steps
+---
 
-1.  **IAM User**:
-    Create an IAM user in your AWS account with programmatic access. This user needs permissions to perform SNS actions. It is recommended to create a specific policy with the following minimum permissions:
-    -   `sns:ListTopics`
-    -   `sns:CreateTopic`
-    -   `sns:DeleteTopic`
-    -   `sns:Subscribe`
-    -   `sns:Unsubscribe`
-    -   `sns:CreatePlatformEndpoint`
-    -   `sns:GetEndpointAttributes`
-    -   `sns:SetEndpointAttributes`
+### 1️⃣ IAM User Setup
 
-    **Note:** For security, grant only the necessary permissions. Do not use your root account credentials.
+Create an IAM user with **programmatic access** and attach a policy with the following minimum permissions:
 
-2.  **Firebase Setup**:
-    -   Set up a Firebase project at the [Firebase Console](https://console.firebase.google.com/).
-    -   Add your Android app to the project and download the `google-services.json` file. Place this file in the `app/` directory of the project.
+sns:ListTopics
+sns:CreateTopic
+sns:DeleteTopic
+sns:Subscribe
+sns:Unsubscribe
+sns:CreatePlatformEndpoint
+sns:GetEndpointAttributes
+sns:SetEndpointAttributes
 
-3.  **AWS SNS Platform Application**:
-    -   In the AWS SNS console, create a "Platform Application".
-    -   Choose "Firebase Cloud Messaging (FCM)" and enter your FCM Server Key from the Firebase project settings.
-    -   Once created, copy the **Platform Application ARN**. The app will ask for this ARN during the setup process for a specific region.
 
-4.  **Build the App**:
-    -   Open the project in Android Studio.
-    -   The app stores credentials securely. The specific implementation details regarding environment variables and credential storage are managed within the app's secure configuration. When prompted by the app, enter your IAM Access Key and Secret Key.
 
-### `local.properties`
+⚠️ **Do not use root credentials.** Grant only the permissions required.
 
-For local development, you can store your AWS credentials in the `local.properties` file at the root of the project. This file is included in `.gitignore` and will not be checked into version control.
+---
 
-Create a `local.properties` file if it doesn't exist and add the following lines:
+### 2️⃣ Firebase Setup
 
-```
-aws.accessKeyId=YOUR_AWS_ACCESS_KEY_ID
-aws.secretKey=YOUR_AWS_SECRET_KEY
-```
+1. Create a Firebase project  
+2. Add your Android app  
+3. Download `google-services.json`  
+4. Place it in the `app/` directory  
 
-Replace `YOUR_AWS_ACCESS_KEY_ID` and `YOUR_AWS_SECRET_KEY` with your actual IAM user credentials.
+---
 
-If these properties are not found in `local.properties`, the app will prompt you to enter them manually.
+### 3️⃣ AWS SNS Platform Application
+
+1. Open the AWS SNS Console  
+2. Create a **Platform Application**  
+3. Select **Firebase Cloud Messaging (FCM)**  
+4. Provide your FCM Server Key  
+5. Copy the **Platform Application ARN**  
+6. Enter this ARN during onboarding for each region  
+
+---
+
+## 📦 Installation
+
+1. Download `AWS_SNS_NOTIFIER_1.0.0.apk` from **Releases → Assets**  
+2. Install the APK on your Android device  
+3. Allow installation from unknown sources if prompted  
+4. Launch the app and complete onboarding  
+
+---
+## Why This App Exists
+
+AWS Budget alerts are critical for monitoring costs, but the default notification options (email, SMS) have limitations:
+
+- **Email:** Slow and easy to miss.  
+- **SMS:** Paid service.  
+- **SNS:** Free, AWS-native, but not directly mobile-friendly.  
+
+This app fills the gap by bridging **AWS SNS → Android push notifications via FCM**.
+
+---
+
+## Design Decisions
+
+### 1. AWS Credentials in the App
+- Users provide their **own AWS Access Key and Secret Key**.  
+- No backend or sign-up required, allowing **independent use**.  
+- ⚠️ **Security:** Create IAM users with **minimal SNS permissions** for safety.
+
+### 2. Android-only Platform
+- Targeting Android ensures **immediate mobile notifications**.  
+- Focused on personal use for simplicity and reliability.
+
+### 3. Firebase Cloud Messaging (FCM)
+- FCM is used to **deliver push notifications** reliably on Android.  
+- Handles token management, registration, and delivery without extra complexity.
+
+### 4. Per-topic Subscriptions
+- Users **choose which topics to subscribe to**, avoiding notification overload.  
+- Supports multiple use cases: budgets, development, or other alerts.
+
+### 5. Multi-region Support
+- AWS SNS topics are **region-scoped**, and the app supports multiple regions.  
+- Enables users to monitor alerts across different projects and locations.
+
+### 6. Full SNS Management
+- Users can **list, create, delete, and subscribe to topics** directly in the app.  
+- Adds convenience and eliminates the need to use AWS Console.
+
+### 7. Independent, Self-contained
+- No backend or SMS costs required.  
+- Works like a **mobile AWS SNS client**, giving users **full control** over notifications.
+
+---
+
+## Use Case Example
+
+**AWS Budget Alerts:**  
+- Set thresholds in AWS Budgets.  
+- When a threshold is exceeded, AWS publishes a notification to an SNS topic.  
+- This app subscribes to that topic and **delivers a push notification to your Android device instantly**.
+
+---
+
+🚧 Status
+
+✅ First public release
+
+📈 Actively improving
+
+🧩 More AWS integrations planned
+
+## 🤝 Contributing
+- Fork the repo
+- Create a new branch
+- Submit pull requests
+**
