@@ -35,3 +35,6 @@ captures/
 
 # Log files
 *.log
+
+app/release
+Screenshots/
