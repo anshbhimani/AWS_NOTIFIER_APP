@@ -71,7 +71,6 @@ Manage AWS account details, notification retention, and securely reset credentia
 
 <p float="left">
   <img src="https://github.com/user-attachments/assets/8708d9ae-3fa0-46f5-aa1a-398d57dbb9f0" width="250"/>
-  <img src="https://github.com/user-attachments/assets/b045e461-b289-4393-8e69-46ccec21de7b" width="250"/>
 </p>
 
 ---
