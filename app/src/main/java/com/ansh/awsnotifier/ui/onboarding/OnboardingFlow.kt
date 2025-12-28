@@ -15,31 +15,54 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import com.ansh.awsnotifier.aws.CredentialValidator
+import com.ansh.awsnotifier.ui.onboarding.pages.IAMPolicyPage
 import com.ansh.awsnotifier.ui.onboarding.pages.WelcomePage
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun OnboardingFlow(
-    onFinish: (accessKey: String, secretKey: String) -> Unit
+    onFinish: () -> Unit
 ) {
-    val pages = listOf("welcome", "iam", "credentials")
+    val pages = listOf("welcome", "iam setup guide", "iam user", "credentials")
     val pager = rememberPagerState(pageCount = { pages.size })
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     var accessKey by remember { mutableStateOf("") }
     var secretKey by remember { mutableStateOf("") }
+    var selectedRegion by remember { mutableStateOf("us-east-1") }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         bottomBar = {
             OnboardingNavigationBar(
                 currentPage = pager.currentPage,
                 totalPages = pages.size,
+                isLoading = isLoading,
                 onNext = {
                     if (pager.currentPage < pages.lastIndex) {
                         scope.launch { pager.animateScrollToPage(pager.currentPage + 1) }
                     } else {
-                        onFinish(accessKey.trim(), secretKey.trim())
+                        // Finish / Validate
+                        isLoading = true
+                        errorMessage = null
+                        scope.launch {
+                            val result = CredentialValidator.validateAndSave(
+                                context = context,
+                                accessKey = accessKey,
+                                secretKey = secretKey,
+                                region = selectedRegion
+                            )
+                            isLoading = false
+                            result.fold(
+                                onSuccess = { onFinish() },
+                                onFailure = { e -> errorMessage = e.message }
+                            )
+                        }
                     }
                 },
                 onBack = {
@@ -57,18 +80,29 @@ fun OnboardingFlow(
         ) {
             HorizontalPager(
                 state = pager,
+                userScrollEnabled = !isLoading,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
             ) { page ->
                 when (pages[page]) {
                     "welcome" -> WelcomePage()
-                    "iam" -> IAMSetupGuideScreen()
+                    "iam setup guide" -> IAMPolicyPage()
+                    "iam user" -> IAMSetupGuideScreen()
                     "credentials" -> CredentialInputScreen(
                         accessKey = accessKey,
                         secretKey = secretKey,
-                        onAccessChange = { accessKey = it },
-                        onSecretChange = { secretKey = it }
+                        selectedRegion = selectedRegion,
+                        onAccessChange = {
+                            accessKey = it
+                            errorMessage = null
+                        },
+                        onSecretChange = {
+                            secretKey = it
+                            errorMessage = null
+                        },
+                        onRegionChange = { selectedRegion = it },
+                        error = errorMessage
                     )
                 }
             }

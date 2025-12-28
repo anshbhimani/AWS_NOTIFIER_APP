@@ -1,154 +1,234 @@
 package com.ansh.awsnotifier.ui.onboarding.pages
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Error
+import androidx.compose.material.icons.outlined.Key
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Password
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.dp
+import com.ansh.awsnotifier.R
 import com.ansh.awsnotifier.aws.CredentialValidator
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun IamCredentialsInputScreen(
-    onSuccess: () -> Unit
-) {
+fun IamCredentialsInputScreen(onSuccess: () -> Unit) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
 
     var accessKey by remember { mutableStateOf("") }
     var secretKey by remember { mutableStateOf("") }
-
-    // Region dropdown data
-    val regions = listOf(
-        "us-east-1",
-        "us-east-2",
-        "us-west-1",
-        "us-west-2",
-        "ap-south-1",
-        "ap-southeast-1",
-        "ap-southeast-2",
-        "ap-northeast-1",
-        "eu-central-1",
-        "eu-west-1"
-    )
-
-    var selectedRegion by remember { mutableStateOf("us-east-1") }
-    var dropdownExpanded by remember { mutableStateOf(false) }
-
-    var loading by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
+    var showSecret by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(26.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(24.dp)
+            .verticalScroll(scrollState)
     ) {
-
-        Text("AWS Credentials", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(16.dp))
         Text(
-            "Stored locally using encrypted storage.",
+            text = stringResource(id = R.string.creds_title),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = stringResource(id = R.string.creds_intro),
+            style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(Modifier.height(32.dp))
 
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Security notice
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer
+            )
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Lock,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = stringResource(id = R.string.creds_security_notice),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Access Key Input
         OutlinedTextField(
             value = accessKey,
-            onValueChange = { accessKey = it; error = null },
-            label = { Text("Access Key ID") },
+            onValueChange = { accessKey = it.trim(); errorMessage = null },
+            label = { Text(stringResource(id = R.string.creds_label_access_key)) },
+            placeholder = { Text(stringResource(id = R.string.creds_hint_access_key)) },
+            leadingIcon = { Icon(Icons.Outlined.Key, contentDescription = null) },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
+            isError = errorMessage != null
         )
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
+        // Secret Key Input
         OutlinedTextField(
             value = secretKey,
-            onValueChange = { secretKey = it; error = null },
-            label = { Text("Secret Access Key") },
-            visualTransformation = PasswordVisualTransformation(),
+            onValueChange = { secretKey = it.trim(); errorMessage = null },
+            label = { Text(stringResource(id = R.string.creds_label_secret_key)) },
+            placeholder = { Text(stringResource(id = R.string.creds_hint_secret_key)) },
+            leadingIcon = { Icon(Icons.Outlined.Password, contentDescription = null) },
+            trailingIcon = {
+                IconButton(onClick = { showSecret = !showSecret }) {
+                    Icon(
+                        if (showSecret) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                        contentDescription = if (showSecret) "Hide" else "Show"
+                    )
+                }
+            },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth()
+            visualTransformation = if (showSecret) VisualTransformation.None else PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            isError = errorMessage != null
         )
 
-        Spacer(Modifier.height(16.dp))
-
-        // Dropdown Region Selector
-        ExposedDropdownMenuBox(
-            expanded = dropdownExpanded,
-            onExpandedChange = { dropdownExpanded = !dropdownExpanded }
-        ) {
-            OutlinedTextField(
-                value = selectedRegion,
-                onValueChange = { },
-                readOnly = true,
-                label = { Text("AWS Region") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
-                modifier = Modifier
-                    .menuAnchor()
-                    .fillMaxWidth()
-            )
-
-            ExposedDropdownMenu(
-                expanded = dropdownExpanded,
-                onDismissRequest = { dropdownExpanded = false }
+        // Error message
+        if (errorMessage != null) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                )
             ) {
-                regions.forEach { region ->
-                    DropdownMenuItem(
-                        text = { Text(region) },
-                        onClick = {
-                            selectedRegion = region
-                            dropdownExpanded = false
-                        }
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Error,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = errorMessage!!,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer
                     )
                 }
             }
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
-        if (error != null) {
-            Text(error!!, color = MaterialTheme.colorScheme.error)
-            Spacer(Modifier.height(12.dp))
-        }
-
+        // Validate and Save button
         Button(
             onClick = {
-                loading = true
-                error = null
-
                 scope.launch {
+                    isLoading = true
+                    errorMessage = null
+
                     val result = CredentialValidator.validateAndSave(
                         context = ctx,
                         accessKey = accessKey,
                         secretKey = secretKey,
-                        region = selectedRegion
+                        region = "us-east-1"
                     )
 
-                    loading = false
+                    isLoading = false
 
                     result.fold(
-                        onSuccess = {
-                            onSuccess()
-                        },
+                        onSuccess = { onSuccess() },
                         onFailure = { e ->
-                            error = e.message ?: "Validation failed"
+                            errorMessage =
+                                e.message ?: ctx.getString(R.string.creds_err_validation_failed)
                         }
                     )
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !loading
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            enabled = accessKey.isNotBlank() && secretKey.isNotBlank() && !isLoading
         ) {
-            Text(if (loading) "Validating…" else "Continue")
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(stringResource(id = R.string.creds_validating))
+            } else {
+                Icon(Icons.Outlined.CheckCircle, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(id = R.string.creds_btn_validate))
+            }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Help text
+        Text(
+            text = stringResource(id = R.string.creds_help_text),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
     }
 }

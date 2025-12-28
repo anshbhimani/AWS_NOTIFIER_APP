@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Button
@@ -23,6 +24,7 @@ import androidx.compose.ui.unit.dp
 fun OnboardingNavigationBar(
     currentPage: Int,
     totalPages: Int,
+    isLoading: Boolean = false,
     onNext: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -43,6 +45,7 @@ fun OnboardingNavigationBar(
             if (currentPage > 0) {
                 TextButton(
                     onClick = onBack,
+                    enabled = !isLoading,
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text("Back")
@@ -53,9 +56,19 @@ fun OnboardingNavigationBar(
 
             Button(
                 onClick = onNext,
+                enabled = !isLoading,
                 shape = MaterialTheme.shapes.large,
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
             ) {
+                if (isLoading) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier
+                            .size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
                 Text(if (currentPage == totalPages - 1) "Finish" else "Next")
             }
         }

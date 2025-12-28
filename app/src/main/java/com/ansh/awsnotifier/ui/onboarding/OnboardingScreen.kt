@@ -4,16 +4,34 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ansh.awsnotifier.ui.onboarding.pages.IAMPolicyPage
 import com.ansh.awsnotifier.ui.onboarding.pages.IAMSetupPage
@@ -70,11 +88,6 @@ fun OnboardingScreen(
                             pagerState.animateScrollToPage(pagerState.currentPage - 1)
                         }
                     }
-                },
-                onSkip = {
-                    // You *could* jump directly to the last page here, but right now
-                    // skip = "finish onboarding now"
-                    onFinish()
                 }
             )
         }
@@ -133,73 +146,68 @@ private fun OneUiOnboardingBottomBar(
     currentPage: Int,
     totalPages: Int,
     onNext: () -> Unit,
-    onBack: () -> Unit,
-    onSkip: () -> Unit
+    onBack: () -> Unit
 ) {
-    Surface(
-        tonalElevation = 3.dp,
-        shadowElevation = 8.dp
+    // Removed Surface with elevation to match main background
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
+            .navigationBarsPadding()
+            .padding(horizontal = 20.dp, vertical = 4.dp) // Reduced from 12.dp
     ) {
-        Column(
+        // Dots
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 12.dp)
+                .padding(bottom = 4.dp), // Reduced from 12.dp
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Dots
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                repeat(totalPages) { index ->
-                    val isSelected = index == currentPage
-                    val width by animateDpAsState(if (isSelected) 16.dp else 6.dp)
-                    val alpha by animateFloatAsState(if (isSelected) 1f else 0.4f)
+            repeat(totalPages) { index ->
+                val isSelected = index == currentPage
+                val width by animateDpAsState(if (isSelected) 16.dp else 6.dp)
+                val alpha by animateFloatAsState(if (isSelected) 1f else 0.4f)
 
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 3.dp)
-                            .height(6.dp)
-                            .width(width)
-                            .clip(CircleShape)
-                            .background(
-                                MaterialTheme.colorScheme.primary.copy(alpha = alpha)
-                            )
-                    )
-                }
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 3.dp)
+                        .height(6.dp)
+                        .width(width)
+                        .clip(CircleShape)
+                        .background(
+                            MaterialTheme.colorScheme.primary.copy(alpha = alpha)
+                        )
+                )
+            }
+        }
+
+        // Buttons row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (currentPage > 0) {
+                TextButton(onClick = onBack) { Text(stringResource(id = com.ansh.awsnotifier.R.string.btn_back)) }
+            } else {
+                Spacer(modifier = Modifier.width(8.dp))
             }
 
-            // Buttons row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (currentPage > 0) {
-                    TextButton(onClick = onBack) { Text("Back") }
-                } else {
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
+            Spacer(modifier = Modifier.weight(1f))
 
-                Spacer(modifier = Modifier.weight(1f))
-
-                if (currentPage < totalPages - 1) {
-                    TextButton(onClick = onSkip) { Text("Skip") }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        onClick = onNext,
-                        shape = MaterialTheme.shapes.extraLarge,
-                        modifier = Modifier.widthIn(min = 120.dp)
-                    ) { Text("Next") }
-                } else {
-                    Button(
-                        onClick = onNext,
-                        shape = MaterialTheme.shapes.extraLarge,
-                        modifier = Modifier.widthIn(min = 160.dp)
-                    ) { Text("Finish") }
-                }
+            if (currentPage < totalPages - 1) {
+                // Removed Skip Button
+                Button(
+                    onClick = onNext,
+                    shape = MaterialTheme.shapes.extraLarge,
+                    modifier = Modifier.widthIn(min = 120.dp)
+                ) { Text(stringResource(id = com.ansh.awsnotifier.R.string.btn_next)) }
+            } else {
+                Button(
+                    onClick = onNext,
+                    shape = MaterialTheme.shapes.extraLarge,
+                    modifier = Modifier.widthIn(min = 160.dp)
+                ) { Text(stringResource(id = com.ansh.awsnotifier.R.string.btn_finish)) }
             }
         }
     }

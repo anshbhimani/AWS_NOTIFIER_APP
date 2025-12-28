@@ -17,13 +17,8 @@ class OnboardingActivity : ComponentActivity() {
 
         setContent {
             AppTheme {
-                OnboardingFlow(
-                    onFinish = { accessKey, secretKey ->
-                        UserSession.saveCredentials(
-                            this,
-                            accessKey,
-                            secretKey
-                        )
+                OnboardingScreen(
+                    onFinish = {
                         UserSession.setOnboardingComplete(this, true)
 
                         startActivity(

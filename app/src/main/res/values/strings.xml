@@ -2,4 +2,78 @@
     <string name="app_name">AWS Notifier</string>
     <string name="notif_topic">Topic: %1$s</string>
 
+    <!-- General Onboarding -->
+    <string name="btn_next">Next</string>
+    <string name="btn_back">Back</string>
+    <string name="btn_skip">Skip</string>
+    <string name="btn_finish">Finish</string>
+    <string name="btn_save_finish">Save &amp; Finish</string>
+    <string name="btn_saving">Saving...</string>
+    <string name="copied_to_clipboard">Copied to clipboard</string>
+
+    <!-- Welcome Page -->
+    <string name="welcome_title">Welcome to AWS Notifier</string>
+    <string name="welcome_desc">Receive real-time AWS SNS push notifications directly on your device.\n\nExperience fast, secure, and multi-region monitoring.</string>
+
+    <!-- IAM Setup Guide -->
+    <string name="iam_setup_title">Create an IAM User</string>
+    <string name="iam_setup_intro">For security, create a dedicated IAM user with limited permissions using the policy displayed on the previous screen</string>
+    <string name="iam_warning_text">Never use your root account credentials! Always create a dedicated IAM user.</string>
+    <string name="iam_btn_open_console">Open AWS IAM Console</string>
+
+    <string name="iam_step_1_title">Open IAM Console</string>
+    <string name="iam_step_1_desc">Open the AWS Console, navigate to \'IAM\', select \'Users\', and click \'Create user\'.</string>
+
+    <string name="iam_step_2_title">Enter User Details</string>
+    <string name="iam_step_2_desc">Enter a user name (e.g., \'sns-notifier-app\'). Ensure \'Provide user access to the AWS Management Console\' is unchecked.</string>
+
+    <string name="iam_step_3_title">Set Permissions</string>
+    <string name="iam_step_3_desc">Select \'Attach policies directly\'. Search for and select the custom policy you just created.</string>
+
+    <string name="iam_step_4_title">Create Access Keys</string>
+    <string name="iam_step_4_desc">After creating the user, go to the \'Security credentials\' tab. Click \'Create access key\' and select \'Application running outside AWS\'.</string>
+
+    <string name="iam_step_5_title">Save Your Keys</string>
+    <string name="iam_step_5_desc">Copy the \'Access Key ID\' and \'Secret Access Key\' immediately. You will need them for the next step.</string>
+
+    <!-- IAM Policy Page -->
+    <string name="iam_policy_title">IAM Policy</string>
+    <string name="iam_policy_intro">Create a custom policy with these minimal permissions.</string>
+    <string name="iam_policy_info_title">How to create this policy:</string>
+    <string name="iam_policy_info_steps">1. IAM Console → Policies → Create Policy\n2. Select JSON tab\n3. Paste the policy below\n4. Save as: SNSNotifierAppPolicy\n5. Attach it to your IAM user</string>
+    <string name="iam_policy_json_label">JSON Policy</string>
+    <string name="iam_policy_perms_title">What these permissions allow:</string>
+
+    <string name="perm_list_topics">ListTopics</string>
+    <string name="perm_list_topics_desc">View available SNS topics.</string>
+    <string name="perm_sub_unsub">Subscribe/Unsubscribe</string>
+    <string name="perm_sub_unsub_desc">Manage SNS subscriptions.</string>
+    <string name="perm_create_endpoint">CreatePlatformEndpoint</string>
+    <string name="perm_create_endpoint_desc">Register device for push notifications.</string>
+    <string name="perm_set_endpoint">SetEndpointAttributes</string>
+    <string name="perm_set_endpoint_desc">Update device token when refreshed.</string>
+
+    <string name="iam_policy_json_content">{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [\n   {\n            \"Effect\": \"Allow\",\n            \"Action\": \"ec2:DescribeRegions\",\n            \"Resource\": \"*\"\n    },\n    {\n      \"Sid\": \"SNSFullTopicManagement\",\n      \"Effect\": \"Allow\",\n      \"Action\": [\n        \"sns:CreateTopic\",\n        \"sns:DeleteTopic\",\n        \"sns:SetTopicAttributes\",\n        \"sns:GetTopicAttributes\",\n        \"sns:ListTopics\"\n      ],\n      \"Resource\": \"*\"\n    },\n    {\n      \"Sid\": \"SNSSubscriptionManagement\",\n      \"Effect\": \"Allow\",\n      \"Action\": [\n        \"sns:Subscribe\",\n        \"sns:Unsubscribe\",\n        \"sns:GetSubscriptionAttributes\",\n        \"sns:ListSubscriptions\",\n        \"sns:ListSubscriptionsByTopic\"\n      ],\n      \"Resource\": \"*\"\n    },\n    {\n      \"Sid\": \"SNSPublishing\",\n      \"Effect\": \"Allow\",\n      \"Action\": [\n        \"sns:Publish\"\n      ],\n      \"Resource\": \"*\"\n    },\n    {\n      \"Sid\": \"SNSMobilePushEndpoints\",\n      \"Effect\": \"Allow\",\n      \"Action\": [\n        \"sns:CreatePlatformEndpoint\",\n        \"sns:SetEndpointAttributes\",\n        \"sns:GetEndpointAttributes\",\n        \"sns:DeleteEndpoint\"\n      ],\n      \"Resource\": \"*\"\n    },\n    {\n      \"Sid\": \"SNSPublicTopicAccessControls\",\n      \"Effect\": \"Allow\",\n      \"Action\": [\n        \"sns:AddPermission\",\n        \"sns:RemovePermission\"\n      ],\n      \"Resource\": \"*\"\n    },\n    {\n      \"Sid\": \"StsIdentity\",\n      \"Effect\": \"Allow\",\n      \"Action\": [\n        \"sts:GetCallerIdentity\"\n      ],\n      \"Resource\": \"*\"\n    }\n  ]\n}</string>
+
+    <!-- Credentials Page -->
+    <string name="creds_title">Enter Credentials</string>
+    <string name="creds_intro">Enter the access keys from your IAM user</string>
+    <string name="creds_security_notice">Your credentials are encrypted and stored securely on this device only.</string>
+    <string name="creds_label_access_key">Access Key ID</string>
+    <string name="creds_hint_access_key">AKIA...</string>
+    <string name="creds_label_secret_key">Secret Access Key</string>
+    <string name="creds_hint_secret_key">Your secret key</string>
+    <string name="creds_label_region">Default Region</string>
+    <string name="creds_btn_validate">Validate &amp; Connect</string>
+    <string name="creds_validating">Validating...</string>
+    <string name="creds_help_text">We\'ll verify your credentials by making a test API call to AWS.</string>
+    <string name="creds_err_validation_failed">Validation failed</string>
+
+    <!-- Platform ARN Page -->
+    <string name="plat_title">SNS Platform Application</string>
+    <string name="plat_desc">Paste the SNS Platform Application ARN for your Firebase/FCM app.\nYou can find this in the AWS SNS console under Mobile push → Platform applications.</string>
+    <string name="plat_label_arn">Platform Application ARN</string>
+    <string name="plat_err_required">Platform Application ARN is required</string>
+    <string name="plat_err_invalid">This doesn\'t look like a valid SNS ARN</string>
+
 </resources>
