@@ -84,57 +84,64 @@ class AWSNotifierMessagingService : FirebaseMessagingService() {
      * Handle incoming SNS → FCM messages
      */
     override fun onMessageReceived(message: RemoteMessage) {
-        super.onMessageReceived(message)
+    super.onMessageReceived(message)
 
-        Log.d(TAG, "FCM RAW PAYLOAD = ${message.data}")
+    Log.d(TAG, "FCM RAW PAYLOAD = ${message.data}")
 
-        val data = message.data
-        var topicArn: String? = null
-        var messageText: String? = null
-        var subject: String? = null
-        val timestamp = System.currentTimeMillis()
+    val data = message.data
+    var topicArn: String? = null
+    var messageText: String? = null
+    var subject: String? = null
+    val timestamp = System.currentTimeMillis()
 
-        // SNS standard payload
-        if (data.containsKey("default")) {
-            try {
-                val json = org.json.JSONObject(data["default"]!!)
-                topicArn = json.optString("TopicArn")
-                messageText = json.optString("Message")
-                subject = json.optString("Subject")
+    // SNS standard payload
+    if (data.containsKey("default")) {
+        try {
+            // Step 1: Parse outer SNS envelope
+            val snsEnvelope = org.json.JSONObject(data["default"]!!)
+            topicArn = snsEnvelope.optString("TopicArn").takeIf { it.isNotEmpty() }
+            subject = snsEnvelope.optString("Subject").takeIf { it.isNotEmpty() }
+
+            // Step 2: Parse inner Message field (double encoded CloudWatch JSON)
+            val rawMessage = snsEnvelope.optString("Message")
+            messageText = try {
+                val alarmJson = org.json.JSONObject(rawMessage)
+
+                val alarmName = alarmJson.optString("AlarmName", "")
+                val reason = alarmJson.optString("NewStateReason", "")
+
+                buildString {
+                    if (alarmName.isNotEmpty()) append("$alarmName\n")
+                    if (reason.isNotEmpty()) append(reason)
+                }.trim()
+
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to parse SNS JSON", e)
+                // Not a JSON message, use as plain text
+                rawMessage.takeIf { it.isNotEmpty() }
             }
-        }
 
-        // Fallback fields
-        topicArn = topicArn
-            ?: data["TopicArn"]
-                    ?: data["topicArn"]
-                    ?: data["topic_arn"]
-
-        val title =
-            topicArn?.substringAfterLast(":")
-                ?: subject
-                ?: "AWS Notification"
-
-        val body =
-            messageText
-                ?: data["message"]
-                ?: "You have a new notification"
-
-        showNotification(title, body, topicArn, timestamp)
-    }
-
-    private fun getIconForTopic(topic: String?): Int {
-        if (topic == null) return R.drawable.ic_notification
-
-        return when {
-            topic.contains("alerts", true) -> R.drawable.ic_alert
-            topic.contains("security", true) -> R.drawable.ic_security
-            topic.contains("server", true) -> R.drawable.ic_server
-            else -> R.drawable.ic_notification
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to parse SNS JSON", e)
         }
     }
+
+    // Fallback fields
+    topicArn = topicArn
+        ?: data["TopicArn"]
+        ?: data["topicArn"]
+        ?: data["topic_arn"]
+
+    val title = subject?.takeIf { it.isNotEmpty() }
+        ?: topicArn?.substringAfterLast(":")
+        ?: "AWS Notification"
+
+    val body = messageText?.takeIf { it.isNotEmpty() }
+        ?: data["message"]
+        ?: "You have a new notification"
+
+    showNotification(title, body, topicArn, timestamp)
+}
+
 
     private fun showNotification(
         title: String,
@@ -178,7 +185,7 @@ class AWSNotifierMessagingService : FirebaseMessagingService() {
         )
 
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(getIconForTopic(title))
+            .setSmallIcon(getIconForTopic(topicArn))
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
