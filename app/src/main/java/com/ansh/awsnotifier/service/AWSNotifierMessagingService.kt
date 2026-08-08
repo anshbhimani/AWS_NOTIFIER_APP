@@ -142,6 +142,16 @@ class AWSNotifierMessagingService : FirebaseMessagingService() {
     showNotification(title, body, topicArn, timestamp)
 }
 
+    private fun getIconForTopic(topic: String?): Int {
+        if (topic == null) return R.drawable.ic_notification
+
+        return when {
+            topic.contains("alerts", true) -> R.drawable.ic_alert
+            topic.contains("security", true) -> R.drawable.ic_security
+            topic.contains("server", true) -> R.drawable.ic_server
+            else -> R.drawable.ic_notification
+        }
+    }
 
     private fun showNotification(
         title: String,
