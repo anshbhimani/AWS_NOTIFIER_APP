@@ -67,10 +67,6 @@ android {
         manifestPlaceholders["firebase_messaging_auto_init_enabled"] = "true"
 
         listOf(
-            "USER_POOL_ID",
-            "CLIENT_ID",
-            "COGNITO_REGION",
-            "COGNITO_IDENTITY_POOL_ID",
             "SNS_PLATFORM_APPLICATION_ARN",
             "SNS_PLATFORM_APP_US_EAST_1",
             "SNS_PLATFORM_APP_US_EAST_2",
