@@ -42,6 +42,7 @@ class App : Application() {
 
     fun initSnsManager() {
         if (awsCredentialsProvider != null) {
+            snsManager?.close()
             snsManager = MultiRegionSnsManager(awsCredentialsProvider!!)
             Log.d(TAG, "SNS Manager initialized (lazy)")
         }
@@ -60,6 +61,7 @@ class App : Application() {
         loadCredentialsIfAvailable()
 
         if (hasCredentials()) {
+            snsManager?.close()
             snsManager = MultiRegionSnsManager(awsCredentialsProvider!!)
             Log.d(TAG, "SNS Manager initialized globally")
         }
@@ -184,6 +186,7 @@ class App : Application() {
      */
     fun applyAwsCredentialsProvider(provider: CredentialsProvider) {
         awsCredentialsProvider = provider
+        snsManager?.close()
         snsManager = MultiRegionSnsManager(provider)
         Log.d(TAG, "Credentials applied → SNS Manager initialized")
     }
@@ -214,10 +217,12 @@ class App : Application() {
 
     fun clearCredentials() {
         awsCredentialsProvider = null
+        snsManager?.close()
         snsManager = null
     }
 
     override fun onTerminate() {
+        snsManager?.close()
         super.onTerminate()
         appScope.cancel()
     }
