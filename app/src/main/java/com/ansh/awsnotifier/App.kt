@@ -97,7 +97,9 @@ class App : Application() {
                 Log.d(TAG, "  App Name: ${firebaseApp.name}")
                 Log.d(TAG, "  Project ID: ${firebaseApp.options.projectId}")
                 Log.d(TAG, "  Application ID: ${firebaseApp.options.applicationId}")
-                Log.d(TAG, "  API Key: ${firebaseApp.options.apiKey.take(20)}...")
+                if (BuildConfig.DEBUG) {
+                    Log.d(TAG, "  API Key configured: ${firebaseApp.options.apiKey.isNotBlank()}")
+                }
 
                 // Enable FCM auto-initialization
                 FirebaseMessaging.getInstance().isAutoInitEnabled = true
@@ -108,8 +110,9 @@ class App : Application() {
                     if (task.isSuccessful) {
                         val token = task.result
                         Log.d(TAG, "✓✓✓ FCM Token retrieved successfully!")
-                        Log.d(TAG, "Token (first 50 chars): ${token.take(50)}...")
-                        Log.d(TAG, "Token length: ${token.length}")
+                        if (BuildConfig.DEBUG) {
+                            Log.d(TAG, "Token length: ${token.length}")
+                        }
 
                         // Save it immediately
                         UserSession.saveFcmToken(this, token)

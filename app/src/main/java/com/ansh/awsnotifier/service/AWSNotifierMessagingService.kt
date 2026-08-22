@@ -8,6 +8,7 @@ import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.ansh.awsnotifier.R
+import com.ansh.awsnotifier.BuildConfig
 import com.ansh.awsnotifier.aws.DeviceRegistrar
 import com.ansh.awsnotifier.aws.FirebaseTokenProvider
 import com.ansh.awsnotifier.session.UserSession
@@ -86,7 +87,9 @@ class AWSNotifierMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
     super.onMessageReceived(message)
 
-    Log.d(TAG, "FCM RAW PAYLOAD = ${message.data}")
+    if (BuildConfig.DEBUG) {
+        Log.d(TAG, "FCM payload keys = ${message.data.keys}")
+    }
 
     val data = message.data
     var topicArn: String? = null
