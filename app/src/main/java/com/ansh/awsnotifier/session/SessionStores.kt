@@ -214,21 +214,21 @@ internal class PlatformArnStore(private val prefsProvider: SecurePrefsProvider) 
         val map = loadPlatformArnMap(context)
         map[region] = arn
         savePlatformArnMap(context, map)
-
-        // Keep legacy key in sync for backward compatibility
-        prefsProvider.legacyAwsPrefs(context).edit().putString(legacyRegionKey(region), arn).apply()
     }
 
     fun getPlatformArnForRegion(context: Context, region: String): String? {
         val mapArn = loadPlatformArnMap(context)[region]
         if (mapArn != null) return mapArn
 
-        val legacyArn = prefsProvider.legacyAwsPrefs(context).getString(legacyRegionKey(region), null)
-        if (legacyArn != null) {
-            val updatedMap = loadPlatformArnMap(context)
-            updatedMap[region] = legacyArn
-            savePlatformArnMap(context, updatedMap)
-        }
+        // One-time migration from the legacy unencrypted store; clear it once moved.
+        val legacyPrefs = prefsProvider.legacyAwsPrefs(context)
+        val legacyArn = legacyPrefs.getString(legacyRegionKey(region), null) ?: return null
+
+        val updatedMap = loadPlatformArnMap(context)
+        updatedMap[region] = legacyArn
+        savePlatformArnMap(context, updatedMap)
+        legacyPrefs.edit().remove(legacyRegionKey(region)).apply()
+
         return legacyArn
     }
 
