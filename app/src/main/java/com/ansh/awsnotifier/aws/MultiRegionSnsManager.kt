@@ -19,10 +19,15 @@ import aws.smithy.kotlin.runtime.auth.awscredentials.CredentialsProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
+import java.util.concurrent.ConcurrentHashMap
 
 class MultiRegionSnsManager(
     private val credentialsProvider: CredentialsProvider
-) {
+) : AutoCloseable {
+    private val snsClientsByRegion = ConcurrentHashMap<String, SnsClient>()
+    @Volatile
+    private var ec2Client: Ec2Client? = null
+    private val ec2ClientLock = Any()
 
     // Keep this as fallback!
     private val supportedRegions = listOf(
@@ -36,29 +41,50 @@ class MultiRegionSnsManager(
 
     suspend fun fetchAvailableRegions(): List<String> = withContext(Dispatchers.IO) {
         try {
-            Ec2Client {
-                region = "us-east-1"
-                this.credentialsProvider = this@MultiRegionSnsManager.credentialsProvider
-            }.use { ec2 ->
-                val response = ec2.describeRegions(DescribeRegionsRequest {})
+            val response = getEc2Client().describeRegions(DescribeRegionsRequest {})
 
-                response.regions
-                    ?.filter { it.optInStatus == "opt-in-not-required" || it.optInStatus == "opted-in" }
-                    ?.mapNotNull { it.regionName }
-                    ?.sorted()
-                    ?: emptyList()
-            }
+            response.regions
+                ?.filter { it.optInStatus == "opt-in-not-required" || it.optInStatus == "opted-in" }
+                ?.mapNotNull { it.regionName }
+                ?.sorted()
+                ?: emptyList()
         } catch (e: Exception) {
             Log.e("SNSManager", "Failed to fetch regions, falling back to defaults", e)
             supportedRegions
         }
     }
 
-    private fun getClientForRegion(region: String): SnsClient =
-        SnsClient {
-            this.region = region
-            this.credentialsProvider = this@MultiRegionSnsManager.credentialsProvider
+    private fun getEc2Client(): Ec2Client =
+        ec2Client ?: synchronized(ec2ClientLock) {
+            ec2Client ?: Ec2Client {
+                region = "us-east-1"
+                this.credentialsProvider = this@MultiRegionSnsManager.credentialsProvider
+            }.also { ec2Client = it }
         }
+
+    private fun getClientForRegion(region: String): SnsClient =
+        snsClientsByRegion.computeIfAbsent(region) {
+            SnsClient {
+                this.region = region
+                this.credentialsProvider = this@MultiRegionSnsManager.credentialsProvider
+            }
+        }
+
+    override fun close() {
+        snsClientsByRegion.values.forEach { client ->
+            runCatching { client.close() }
+                .onFailure { Log.w("SNSManager", "Failed to close SNS client", it) }
+        }
+        snsClientsByRegion.clear()
+
+        synchronized(ec2ClientLock) {
+            ec2Client?.let { client ->
+                runCatching { client.close() }
+                    .onFailure { Log.w("SNSManager", "Failed to close EC2 client", it) }
+            }
+            ec2Client = null
+        }
+    }
 
     // ------------------------------------------------------------
     //  ENDPOINT MANAGEMENT (wrapped in IO)
@@ -75,47 +101,44 @@ class MultiRegionSnsManager(
         }
         val region = parts[3]
         
-        getClientForRegion(region).use { sns ->
-            val response = sns.createPlatformEndpoint(
-                CreatePlatformEndpointRequest {
-                    this.platformApplicationArn = platformApplicationArn
-                    this.token = deviceToken
-                    this.attributes = mapOf("Enabled" to "true")
-                }
-            )
+        val sns = getClientForRegion(region)
+        val response = sns.createPlatformEndpoint(
+            CreatePlatformEndpointRequest {
+                this.platformApplicationArn = platformApplicationArn
+                this.token = deviceToken
+                this.attributes = mapOf("Enabled" to "true")
+            }
+        )
 
-            response.endpointArn ?: error("Failed to create platform endpoint")
-        }
+        response.endpointArn ?: error("Failed to create platform endpoint")
     }
 
     suspend fun updateEndpointToken(endpointArn: String, newToken: String) =
         withContext(Dispatchers.IO) {
             val region = endpointArn.split(":")[3]
 
-            getClientForRegion(region).use { sns ->
-                sns.setEndpointAttributes(
-                    SetEndpointAttributesRequest {
-                        this.endpointArn = endpointArn
-                        this.attributes = mapOf(
-                            "Token" to newToken,
-                            "Enabled" to "true"
-                        )
-                    }
-                )
-            }
+            val sns = getClientForRegion(region)
+            sns.setEndpointAttributes(
+                SetEndpointAttributesRequest {
+                    this.endpointArn = endpointArn
+                    this.attributes = mapOf(
+                        "Token" to newToken,
+                        "Enabled" to "true"
+                    )
+                }
+            )
         }
 
     suspend fun deleteEndpoint(endpointArn: String) =
         withContext(Dispatchers.IO) {
             val region = endpointArn.split(":")[3]
 
-            getClientForRegion(region).use { sns ->
-                sns.deleteEndpoint(
-                    DeleteEndpointRequest {
-                        this.endpointArn = endpointArn
-                    }
-                )
-            }
+            val sns = getClientForRegion(region)
+            sns.deleteEndpoint(
+                DeleteEndpointRequest {
+                    this.endpointArn = endpointArn
+                }
+            )
         }
 
     suspend fun registerDeviceEndpoint(
@@ -137,22 +160,21 @@ class MultiRegionSnsManager(
             val tasks = regions.map { region ->
                 async(Dispatchers.IO) {
                     try {
-                        getClientForRegion(region).use { sns ->
-                            var next: String? = null
+                        val sns = getClientForRegion(region)
+                        var next: String? = null
 
-                            do {
-                                val resp = sns.listTopics(
-                                    ListTopicsRequest { nextToken = next }
-                                )
+                        do {
+                            val resp = sns.listTopics(
+                                ListTopicsRequest { nextToken = next }
+                            )
 
-                                resp.topics?.forEach { t ->
-                                    t.topicArn?.let { result.add(it) }
-                                }
+                            resp.topics?.forEach { t ->
+                                t.topicArn?.let { result.add(it) }
+                            }
 
-                                next = resp.nextToken
+                            next = resp.nextToken
 
-                            } while (next != null)
-                        }
+                        } while (next != null)
                     } catch (e: Exception) {
                         Log.e("SNSManager", "Failed to list topics in region $region", e)
                     }
@@ -174,21 +196,20 @@ class MultiRegionSnsManager(
         val tasks = supportedRegions.map { region ->
             async(Dispatchers.IO) {
                 try {
-                    getClientForRegion(region).use { sns ->
-                        var next: String? = null
+                    val sns = getClientForRegion(region)
+                    var next: String? = null
 
-                        do {
-                            val resp = sns.listSubscriptions(
-                                ListSubscriptionsRequest {
-                                    this.nextToken = next
-                                }
-                            )
+                    do {
+                        val resp = sns.listSubscriptions(
+                            ListSubscriptionsRequest {
+                                this.nextToken = next
+                            }
+                        )
 
-                            resp.subscriptions?.let { result.addAll(it) }
-                            next = resp.nextToken
+                        resp.subscriptions?.let { result.addAll(it) }
+                        next = resp.nextToken
 
-                        } while (next != null)
-                    }
+                    } while (next != null)
                 } catch (e: Exception) {
                     Log.e("SNSManager", "Failed to list subscriptions in $region", e)
                 }
@@ -203,17 +224,16 @@ class MultiRegionSnsManager(
         withContext(Dispatchers.IO) {
             val region = topicArn.split(":")[3]
 
-            getClientForRegion(region).use { sns ->
-                val resp = sns.subscribe(
-                    SubscribeRequest {
-                        this.topicArn = topicArn
-                        this.protocol = "application"
-                        this.endpoint = endpointArn
-                    }
-                )
+            val sns = getClientForRegion(region)
+            val resp = sns.subscribe(
+                SubscribeRequest {
+                    this.topicArn = topicArn
+                    this.protocol = "application"
+                    this.endpoint = endpointArn
+                }
+            )
 
-                resp.subscriptionArn ?: error("Subscription ARN was null")
-            }
+            resp.subscriptionArn ?: error("Subscription ARN was null")
         }
 
     suspend fun unsubscribe(subscriptionArn: String) =
@@ -226,13 +246,12 @@ class MultiRegionSnsManager(
 
             val region = subscriptionArn.split(":")[3]
 
-            getClientForRegion(region).use { sns ->
-                sns.unsubscribe(
-                    UnsubscribeRequest {
-                        this.subscriptionArn = subscriptionArn
-                    }
-                )
-            }
+            val sns = getClientForRegion(region)
+            sns.unsubscribe(
+                UnsubscribeRequest {
+                    this.subscriptionArn = subscriptionArn
+                }
+            )
         }
 
     // ------------------------------------------------------------
@@ -243,17 +262,16 @@ class MultiRegionSnsManager(
         withContext(Dispatchers.IO) {
             val region = topicArn.split(":")[3]
 
-            getClientForRegion(region).use { sns ->
-                val request = PublishRequest {
-                    this.topicArn = topicArn
-                    this.message = message
-                    messageStructure?.let {
-                        this.messageStructure = it
-                    }
+            val sns = getClientForRegion(region)
+            val request = PublishRequest {
+                this.topicArn = topicArn
+                this.message = message
+                messageStructure?.let {
+                    this.messageStructure = it
                 }
-
-                sns.publish(request)
             }
+
+            sns.publish(request)
         }
 
 
@@ -262,27 +280,25 @@ class MultiRegionSnsManager(
     // ------------------------------------------------------------
 
     suspend fun createTopic(name: String, region: String): String = withContext(Dispatchers.IO) {
-        getClientForRegion(region).use { sns ->
-            val response = sns.createTopic(
-                CreateTopicRequest {
-                    this.name = name
-                }
-            )
+        val sns = getClientForRegion(region)
+        val response = sns.createTopic(
+            CreateTopicRequest {
+                this.name = name
+            }
+        )
 
-            response.topicArn ?: error("Failed to create topic")
-        }
+        response.topicArn ?: error("Failed to create topic")
     }
 
     suspend fun deleteTopic(topicArn: String) = withContext(Dispatchers.IO) {
         val region = topicArn.split(":")[3]
 
-        getClientForRegion(region).use { sns ->
-            sns.deleteTopic(
-                DeleteTopicRequest {
-                    this.topicArn = topicArn
-                }
-            )
-        }
+        val sns = getClientForRegion(region)
+        sns.deleteTopic(
+            DeleteTopicRequest {
+                this.topicArn = topicArn
+            }
+        )
     }
 
 }
