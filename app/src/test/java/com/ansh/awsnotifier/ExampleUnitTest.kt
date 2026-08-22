@@ -69,9 +69,15 @@ class ExampleUnitTest {
 
         assertNull(title)
         assertNotNull(body)
+        // JSONObject key order isn't guaranteed across implementations, so compare as a set of lines.
+        val lines = body!!.split("\n").toSet()
         assertEquals(
-            "eventType: SecurityHubFinding\nseverity: HIGH\naccount: 123456789012",
-            body
+            setOf(
+                "eventType: SecurityHubFinding",
+                "severity: HIGH",
+                "account: 123456789012"
+            ),
+            lines
         )
     }
 }

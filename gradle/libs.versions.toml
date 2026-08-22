@@ -11,7 +11,7 @@ recyclerview = "1.3.2"
 swiperefreshlayout = "1.1.0"
 datastorePreferences = "1.1.1"
 securityCrypto = "1.1.0"
-biometric = "1.2.0"
+biometric = "1.1.0"
 composeBom = "2024.11.00"
 activityCompose = "1.9.3"
 coroutinesAndroid = "1.8.1"
@@ -23,6 +23,7 @@ awsSdkKotlinEc2 = "1.3.95"
 junit = "4.13.2"
 androidxJunit = "1.2.1"
 espressoCore = "3.6.1"
+json = "20260814"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -65,3 +66,4 @@ aws-sdk-kotlin-ec2 = { group = "aws.sdk.kotlin", name = "ec2", version.ref = "aw
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+json = { group = "org.json", name = "json", version.ref = "json" }

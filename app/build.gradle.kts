@@ -171,6 +171,7 @@ dependencies {
     implementation(libs.aws.sdk.kotlin.ec2)
 
     testImplementation(libs.junit)
+    testImplementation(libs.json)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }
