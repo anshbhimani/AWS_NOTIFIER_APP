@@ -100,11 +100,11 @@ fun SettingsScreen(
         fcmToken = UserSession.getFcmToken(context)?.take(10)?.plus("...") ?: "Not Registered"
 
         // Load AWS Account ID if creds exist
-        if (app.awsCredentialsProvider != null) {
-            val identity = AwsIdentityManager(app.awsCredentialsProvider!!).getAccountDetails()
-            accountId = identity ?: "Unavailable"
+        val credentialsProvider = app.awsCredentialsProvider
+        accountId = if (credentialsProvider != null) {
+            AwsIdentityManager(credentialsProvider).getAccountDetails() ?: "Unavailable"
         } else {
-            accountId = "Not Logged In"
+            "Not Logged In"
         }
     }
 

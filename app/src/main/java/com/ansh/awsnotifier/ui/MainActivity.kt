@@ -310,8 +310,14 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
+            val registeredEndpoint = endpoint
+            if (registeredEndpoint == null) {
+                Toast.makeText(this@MainActivity, "Device registration incomplete, try again", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+
             try {
-                val subArn = sns.subscribe(topicArn, endpoint!!)
+                val subArn = sns.subscribe(topicArn, registeredEndpoint)
                 UserSession.saveSubscription(this@MainActivity, subArn, topicArn, region)
 
                 // Update the UI state directly
@@ -464,7 +470,10 @@ class MainActivity : AppCompatActivity() {
             _isLoading.value = true
             try {
                 val app = application as App
-                val sns = app.snsManager!!
+                val sns = app.snsManager ?: run {
+                    Toast.makeText(this@MainActivity, "AWS credentials not set up", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
                 sns.createTopic(name, _currentRegion.value)
                 loadTopics()
                 Toast.makeText(this@MainActivity, "Topic created", Toast.LENGTH_SHORT).show()
