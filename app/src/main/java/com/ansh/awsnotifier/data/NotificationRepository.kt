@@ -7,11 +7,7 @@ import kotlinx.coroutines.flow.map
 class NotificationRepository(private val dao: NotificationDao) {
 
     suspend fun insert(notification: NotificationEntity) {
-        val encryptedMessage = try {
-            CredentialEncryption.encrypt(notification.message)
-        } catch (e: Exception) {
-            notification.message // Fallback
-        }
+        val encryptedMessage = CredentialEncryption.encrypt(notification.message)
         val entityToSave = notification.copy(message = encryptedMessage)
         dao.insert(entityToSave)
     }
