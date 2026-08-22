@@ -21,6 +21,41 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+internal object StructuredAlertParser {
+    fun parse(raw: String): Pair<String?, String?> {
+        return try {
+            val json = org.json.JSONObject(raw)
+
+            val alarmName = json.optString("AlarmName", "").takeIf { it.isNotEmpty() }
+            val alarmReason = json.optString("NewStateReason", "").takeIf { it.isNotEmpty() }
+            if (alarmName != null || alarmReason != null) {
+                return alarmName to (alarmReason ?: raw)
+            }
+
+            val budgetName = json.optString("budgetName", json.optString("BudgetName", ""))
+                .takeIf { it.isNotEmpty() }
+            if (budgetName != null) {
+                val actual = json.optString("actualAmount", json.optString("ActualAmount", ""))
+                val limit = json.optString("budgetLimit", json.optString("BudgetLimit", ""))
+                val unit = json.optString("unit", json.optString("Unit", ""))
+                val body = if (actual.isNotEmpty() && limit.isNotEmpty()) {
+                    "Spend of $actual $unit has crossed your budget limit of $limit $unit".trim()
+                } else {
+                    raw
+                }
+                return budgetName to body
+            }
+
+            val summary = json.keys().asSequence()
+                .take(4)
+                .joinToString("\n") { key -> "$key: ${json.optString(key)}" }
+            null to summary.takeIf { it.isNotEmpty() }
+        } catch (e: Exception) {
+            null to raw.takeIf { it.isNotEmpty() }
+        }
+    }
+}
+
 class AWSNotifierMessagingService : FirebaseMessagingService() {
 
     companion object {
@@ -143,38 +178,7 @@ class AWSNotifierMessagingService : FirebaseMessagingService() {
      * any other JSON shape, and to the raw text itself if it isn't JSON at all.
      */
     private fun parseStructuredAlert(raw: String): Pair<String?, String?> {
-        return try {
-            val json = org.json.JSONObject(raw)
-
-            val alarmName = json.optString("AlarmName", "").takeIf { it.isNotEmpty() }
-            val alarmReason = json.optString("NewStateReason", "").takeIf { it.isNotEmpty() }
-            if (alarmName != null || alarmReason != null) {
-                return alarmName to (alarmReason ?: raw)
-            }
-
-            val budgetName = json.optString("budgetName", json.optString("BudgetName", ""))
-                .takeIf { it.isNotEmpty() }
-            if (budgetName != null) {
-                val actual = json.optString("actualAmount", json.optString("ActualAmount", ""))
-                val limit = json.optString("budgetLimit", json.optString("BudgetLimit", ""))
-                val unit = json.optString("unit", json.optString("Unit", ""))
-                val body = if (actual.isNotEmpty() && limit.isNotEmpty()) {
-                    "Spend of $actual $unit has crossed your budget limit of $limit $unit".trim()
-                } else {
-                    raw
-                }
-                return budgetName to body
-            }
-
-            // Unrecognized JSON shape - summarize the first few fields rather than show nothing.
-            val summary = json.keys().asSequence()
-                .take(4)
-                .joinToString("\n") { key -> "$key: ${json.optString(key)}" }
-            null to summary.takeIf { it.isNotEmpty() }
-        } catch (e: Exception) {
-            // Not JSON - plain text message.
-            null to raw.takeIf { it.isNotEmpty() }
-        }
+        return StructuredAlertParser.parse(raw)
     }
 
     private fun getIconForTopic(topic: String?): Int {
