@@ -21,7 +21,7 @@ It provides a secure, mobile-first way to manage SNS topics, subscriptions, and 
   Instant alerts delivered via **Firebase Cloud Messaging (FCM)**.
 
 - **Secure Credential Storage**  
-  AWS Access Key and Secret Key are stored using `EncryptedSharedPreferences`.
+  AWS Access Key and Secret Key are encrypted at rest with a hardware-backed Android Keystore key (AES-GCM).
 
 - **Notification History**  
   Local storage of received alerts with automatic retention and cleanup.
@@ -118,7 +118,7 @@ The app is also now fully migrated to Jetpack Compose — no XML layouts remain.
 - **AWS SDK:** AWS SDK for Kotlin (SNS, STS, EC2)  
 - **Push Notifications:** Firebase Cloud Messaging (FCM)  
 - **Database:** Room  
-- **Security:** EncryptedSharedPreferences  
+- **Security:**  Android Keystore (hardware-backed AES-GCM)
 
 ---
 
